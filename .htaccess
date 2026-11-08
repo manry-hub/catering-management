@@ -1,0 +1,26 @@
+# Apache configuration for Kantin Gorjes
+# Protect sensitive files and directories
+
+<IfModule mod_authz_core.c>
+    # Block access to database dumps, environment files, git repositories, and internal documentation
+    <FilesMatch "(^#.*#|\.(sql|env|bak|inc|log|sh|md)|(composer\.(json|lock)|package\.json))$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    <FilesMatch "(^#.*#|\.(sql|env|bak|inc|log|sh|md)|(composer\.(json|lock)|package\.json))$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Prevent framing for clickjacking defense
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>

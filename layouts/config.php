@@ -1,14 +1,17 @@
 <?php
-$host = 'localhost';
-$user = 'root';
-$password = 'Sorry.240106';
-$database = 'sistem_pemesanan_kantin_gorjes_db';
+$host     = getenv('DB_HOST') ?: 'localhost';
+$user     = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'Sorry.240106';
+$database = getenv('DB_NAME') ?: 'sistem_pemesanan_kantin_gorjes_db';
 
 $conn = mysqli_connect($host, $user, $password, $database);
 
 if (!$conn) {
     die('Koneksi gagal: ' . mysqli_connect_error());
 }
+
+// Set charset ke utf8mb4 untuk keamanan encoding
+mysqli_set_charset($conn, 'utf8mb4');
 
 /**
  * Handle database error and translate into user-friendly message
