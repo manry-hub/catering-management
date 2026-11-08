@@ -18,18 +18,63 @@ mysqli_set_charset($conn, 'utf8mb4');
 /**
  * Handle database error and translate into user-friendly message
  */
-function handle_db_error($conn, $default_msg = 'Terjadi kesalahan pada database.')
+function handle_db_error($conn_or_exception, $default_msg = 'Terjadi kesalahan pada database.')
 {
-    $errno = mysqli_errno($conn);
-    $error = mysqli_error($conn);
+    if ($conn_or_exception instanceof \mysqli_sql_exception) {
+        $errno = $conn_or_exception->getCode();
+        $error = $conn_or_exception->getMessage();
+    } elseif ($conn_or_exception instanceof \mysqli) {
+        $errno = mysqli_errno($conn_or_exception);
+        $error = mysqli_error($conn_or_exception);
+    } else {
+        $errno = 0;
+        $error = '';
+    }
 
     if ($errno == 1451) {
         return "Data tidak bisa dihapus karena masih terkait dengan data lain (misal: sudah ada di transaksi).";
     } elseif ($errno == 1062) {
-        return "Data yang Anda masukkan sudah ada (duplikat).";
+        return "Data yang Anda masukkan sudah ada (duplikat, misal: nama pegawai sudah terdaftar).";
     } elseif ($errno == 1452) {
         return "Gagal menyimpan karena referensi data (ID) tidak ditemukan.";
+    } elseif ($errno == 4025) {
+        return "Operasi ditolak: Kuantitas stok bahan baku tidak mencukupi atau bernilai negatif.";
     }
 
-    return $default_msg . " (Error: " . htmlspecialchars($error) . ")";
+    return $default_msg . ($error ? " (Detail: " . htmlspecialchars($error) . ")" : "");
+}
+
+/**
+ * Render flash error safely with HTML escaping
+ */
+function render_flash_error(): string
+{
+    if (empty($_SESSION['flash_error'])) {
+        return '';
+    }
+    $raw = $_SESSION['flash_error'];
+    unset($_SESSION['flash_error']);
+
+    $lines = preg_split('/<br\s*\/?>|\n/i', (string)$raw);
+    $escaped = [];
+    foreach ($lines as $l) {
+        $t = trim($l);
+        if ($t !== '') {
+            $escaped[] = htmlspecialchars($t, ENT_QUOTES, 'UTF-8');
+        }
+    }
+    return implode('<br>', $escaped);
+}
+
+/**
+ * Render flash success safely with HTML escaping
+ */
+function render_flash_success(): string
+{
+    if (empty($_SESSION['flash_success'])) {
+        return '';
+    }
+    $raw = $_SESSION['flash_success'];
+    unset($_SESSION['flash_success']);
+    return htmlspecialchars((string)$raw, ENT_QUOTES, 'UTF-8');
 }

@@ -18,16 +18,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $sql  = "DELETE FROM bom WHERE id_produk = ? AND id_bahan_baku = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ii', $id_produk, $id_bahan_baku);
+    try {
+        $sql  = "DELETE FROM bom WHERE id_produk = ? AND id_bahan_baku = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'ii', $id_produk, $id_bahan_baku);
 
-    if (mysqli_stmt_execute($stmt)) {
-        // Auto-sync harga_pokok
-        syncHargaPokok($conn, $id_produk);
-        $_SESSION['flash_success'] = 'Bahan baku berhasil dihapus dari resep.';
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menghapus bahan baku.');
+        if (mysqli_stmt_execute($stmt)) {
+            // Auto-sync harga_pokok
+            syncHargaPokok($conn, $id_produk);
+            $_SESSION['flash_success'] = 'Bahan baku berhasil dihapus dari resep.';
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menghapus bahan baku.');
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal menghapus bahan baku.');
     }
 
     header('Location: ../bomdetail.php?id=' . $id_produk);

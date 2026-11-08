@@ -18,6 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $catatan = trim($_POST['catatan'] ?? '');
 
     // Validasi umum
+    if (empty($id_pegawai))
+        $errors[] = 'Sesi pegawai tidak valid, silakan login ulang.';
     if (empty($id_pelanggan))
         $errors[] = 'Pelanggan wajib dipilih.';
     if (!in_array($jenis_pesanan, ['Kantin', 'Catering']))
@@ -32,10 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lokasi_acara = trim($_POST['lokasi_acara'] ?? '');
 
     if ($jenis_pesanan === 'Catering') {
-        if (empty($tanggal_acara))
+        if (empty($tanggal_acara)) {
             $errors[] = 'Tanggal acara wajib diisi.';
-        if (empty($lokasi_acara))
+        } elseif (strtotime($tanggal_acara) === false) {
+            $errors[] = 'Format tanggal acara tidak valid.';
+        }
+        if (empty($lokasi_acara)) {
             $errors[] = 'Lokasi acara wajib diisi.';
+        }
     }
 
     if (!empty($errors)) {

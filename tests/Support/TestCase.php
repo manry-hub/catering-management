@@ -135,6 +135,33 @@ abstract class TestCase
         }
     }
 
+    public function assertNotContains(string $needle, string $haystack, string $message = ''): void
+    {
+        $this->assertionCount++;
+        if (str_contains($haystack, $needle)) {
+            $msg = $message ?: "Failed asserting that '$haystack' does not contain '$needle'.";
+            throw new AssertionException($msg);
+        }
+    }
+
+    public function assertMatchesRegularExpression(string $pattern, string $string, string $message = ''): void
+    {
+        $this->assertionCount++;
+        if (!preg_match($pattern, $string)) {
+            $msg = $message ?: "Failed asserting that string matches pattern '$pattern'.";
+            throw new AssertionException($msg);
+        }
+    }
+
+    public function assertDoesNotMatchRegularExpression(string $pattern, string $string, string $message = ''): void
+    {
+        $this->assertionCount++;
+        if (preg_match($pattern, $string)) {
+            $msg = $message ?: "Failed asserting that string does not match pattern '$pattern'.";
+            throw new AssertionException($msg);
+        }
+    }
+
     public function assertArrayHasKey(string|int $key, array $array, string $message = ''): void
     {
         $this->assertionCount++;
@@ -189,6 +216,10 @@ abstract class TestCase
         $values = [];
 
         foreach ($criteria as $col => $val) {
+            if ($val === null) {
+                $whereClauses[] = "`$col` IS NULL";
+                continue;
+            }
             $whereClauses[] = "`$col` = ?";
             if (is_int($val)) {
                 $types .= 'i';
@@ -231,6 +262,10 @@ abstract class TestCase
         $values = [];
 
         foreach ($criteria as $col => $val) {
+            if ($val === null) {
+                $whereClauses[] = "`$col` IS NULL";
+                continue;
+            }
             $whereClauses[] = "`$col` = ?";
             if (is_int($val)) {
                 $types .= 'i';

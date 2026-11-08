@@ -57,7 +57,7 @@ include '../../layouts/menu.php';
             class="text-xs tracking-[0.2em] uppercase text-luxury-mutedFg hover:text-luxury-accent transition-colors">←
             Kembali ke Pesanan</a>
     </div>
-    <button onclick="exportPDF()"
+    <button id="btn-export-pdf" onclick="exportPDF(this)"
         class="h-9 px-4 border border-[#1A1A1A] bg-[#1A1A1A] text-white text-[10px] tracking-[0.15em] uppercase flex items-center gap-2 hover:bg-transparent hover:text-[#1A1A1A] transition-all duration-300 no-print">
         <i class="fas fa-file-pdf"></i> Export PDF
     </button>
@@ -65,12 +65,14 @@ include '../../layouts/menu.php';
 
 <?php if ($flash_success): ?>
     <div class="mb-8 p-4 rounded-lg border border-green-200 text-green-800 text-sm bg-green-50/80 relative z-10">
-        <?= $flash_success ?>
+        <?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?>
     </div>
 <?php endif; ?>
 <?php if ($flash_error): ?>
     <div class="mb-8 p-4 rounded-lg border border-red-200 text-red-800 text-sm bg-red-50/80 relative z-10">
-        <?= $flash_error ?>
+        <?php foreach (preg_split('/<br\s*\/?>|\n/i', (string)$flash_error) as $l): if (trim($l) !== ''): ?>
+            <div><?= htmlspecialchars(trim($l), ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; endforeach; ?>
     </div>
 <?php endif; ?>
 
@@ -105,9 +107,17 @@ include '../../layouts/menu.php';
                 <p class="text-sm font-medium"><?= date('d M Y, H:i', strtotime($data['tanggal_pesanan'])) ?></p>
             </div>
             <div>
+                <?php
+                if ($data['status_pesanan'] === 'Selesai') {
+                    $statusBadge = 'text-emerald-800 bg-emerald-50 border border-emerald-200/80';
+                } elseif ($data['status_pesanan'] === 'Dibatalkan') {
+                    $statusBadge = 'text-rose-800 bg-rose-50 border border-rose-200/80 line-through';
+                } else {
+                    $statusBadge = 'text-amber-900 bg-amber-50 border border-amber-200/80';
+                }
+                ?>
                 <p class="text-[10px] tracking-[0.2em] uppercase text-luxury-mutedFg mb-1">Status</p>
-                <span
-                    class="text-[9px] tracking-[0.2em] uppercase <?= $data['status_pesanan'] === 'Selesai' ? 'text-luxury-fg font-bold' : ($data['status_pesanan'] === 'Dibatalkan' ? 'text-red-800 line-through' : 'text-luxury-mutedFg') ?>">
+                <span class="inline-block px-2.5 py-1 text-[9px] tracking-[0.15em] uppercase font-semibold <?= $statusBadge ?>">
                     <?= htmlspecialchars($data['status_pesanan']) ?>
                 </span>
             </div>
@@ -182,9 +192,6 @@ include '../../layouts/menu.php';
                         <td class="py-4 px-4 text-right space-x-2">
                             <?php
                             $item_url_params = 'id_pesanan=' . urlencode($id) . '&id_produk=' . urlencode($item['id_produk']);
-                            if (!empty($item['id_detail_pesanan'])) {
-                                $item_url_params .= '&id=' . urlencode($item['id_detail_pesanan']);
-                            }
                             ?>
                             <a href="detail_pesananubah.php?<?= $item_url_params ?>"
                                 class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-accent transition-colors">Ubah</a>
@@ -425,8 +432,11 @@ include '../../layouts/menu.php';
         drawFooter(pdf, currentY + 6);
 
         const fileName = 'Pesanan_' + String(orderData.id).replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.pdf';
-        // Preview PDF
-        window.open(pdf.output('bloburl'), '_blank');
+        const blobUrl = pdf.output('bloburl');
+        const opened = window.open(blobUrl, '_blank');
+        if (!opened) {
+            pdf.save(fileName);
+        }
     }
 
     // Utility: load image URL -> dataURL (returns null on failure)
@@ -516,49 +526,71 @@ include '../../layouts/menu.php';
         drawFooter(pdf, currentY + 4);
 
         const fileName = 'Pesanan_Catering_' + String(orderData.id).replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.pdf';
-        // Preview PDF
-        window.open(pdf.output('bloburl'), '_blank');
+        const blobUrl = pdf.output('bloburl');
+        const opened = window.open(blobUrl, '_blank');
+        if (!opened) {
+            pdf.save(fileName);
+        }
     }
 
-    async function exportPDF() {
-        if (orderData.jenis === 'Kantin') {
-            exportKantinPDF();
-            return;
-        }
-        if (orderData.jenis === 'Catering') {
-            await exportCateringPDF();
-            return;
+    async function exportPDF(btn = document.getElementById('btn-export-pdf')) {
+        let originalHtml = '';
+        if (btn) {
+            btn.disabled = true;
+            originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
         }
 
-        document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+        try {
+            if (orderData.jenis === 'Kantin') {
+                await exportKantinPDF();
+                return;
+            }
+            if (orderData.jenis === 'Catering') {
+                await exportCateringPDF();
+                return;
+            }
 
-        const { jsPDF } = window.jspdf;
-        const element = document.querySelector('.pdf-content') || document.body;
-        const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff'
-        });
+            document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
 
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const imgRatio = canvas.height / canvas.width;
-        const imgHeight = pageWidth * imgRatio;
+            const { jsPDF } = window.jspdf;
+            const element = document.querySelector('.pdf-content') || document.body;
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
 
-        let posY = 0;
-        while (posY < imgHeight) {
-            pdf.addImage(imgData, 'PNG', 0, -posY, pageWidth, imgHeight);
-            posY += pageHeight;
-            if (posY < imgHeight) pdf.addPage();
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imgRatio = canvas.height / canvas.width;
+            const imgHeight = pageWidth * imgRatio;
+
+            let posY = 0;
+            while (posY < imgHeight) {
+                pdf.addImage(imgData, 'PNG', 0, -posY, pageWidth, imgHeight);
+                posY += pageHeight;
+                if (posY < imgHeight) pdf.addPage();
+            }
+
+            const fileName = 'Pesanan_<?= htmlspecialchars($data['id_pesanan']) ?>_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.pdf';
+            const blobUrl = pdf.output('bloburl');
+            const opened = window.open(blobUrl, '_blank');
+            if (!opened) {
+                pdf.save(fileName);
+            }
+        } catch (err) {
+            console.error('PDF Export error:', err);
+            alert('Gagal mengekspor PDF: ' + err.message);
+        } finally {
+            document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
         }
-
-        const fileName = 'Pesanan_<?= htmlspecialchars($data['id_pesanan']) ?>_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.pdf';
-        // Preview PDF
-        window.open(pdf.output('bloburl'), '_blank');
-
-        document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
     }
 
     if (shouldAutoExport) {

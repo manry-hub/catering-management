@@ -25,6 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($harga_pokok < 0) {
         $errors[] = 'Harga Pokok tidak boleh kurang dari 0.';
     }
+    if ($harga_pokok > 0 && $harga_jual < $harga_pokok) {
+        $errors[] = 'Harga Jual tidak boleh lebih rendah dari Harga Pokok (menjual dengan margin rugi).';
+    }
 
     if (!empty($errors)) {
         $_SESSION['flash_error'] = implode('<br>', $errors);
@@ -32,17 +35,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $sql  = "INSERT INTO produk (nama_produk, kategori, harga_jual, harga_pokok) VALUES (?, ?, ?, ?)";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ssdd', $nama_produk, $kategori, $harga_jual, $harga_pokok);
+    try {
+        $sql  = "INSERT INTO produk (nama_produk, kategori, harga_jual, harga_pokok) VALUES (?, ?, ?, ?)";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'ssdd', $nama_produk, $kategori, $harga_jual, $harga_pokok);
 
-    if (mysqli_stmt_execute($stmt)) {
-        $new_id = mysqli_insert_id($conn);
-        $_SESSION['flash_success'] = 'Produk berhasil ditambahkan. Silakan lengkapi resep (BOM) untuk produk ini.';
-        header('Location: ../../bom/bomdetail.php?id=' . $new_id);
-        exit;
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menambahkan data produk.');
+        if (mysqli_stmt_execute($stmt)) {
+            $new_id = mysqli_insert_id($conn);
+            $_SESSION['flash_success'] = 'Produk berhasil ditambahkan. Silakan lengkapi resep (BOM) untuk produk ini.';
+            header('Location: ../../bom/bomdetail.php?id=' . $new_id);
+            exit;
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menambahkan data produk.');
+            header('Location: ../produklihat.php');
+            exit;
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal menambahkan data produk.');
         header('Location: ../produklihat.php');
         exit;
     }

@@ -7,7 +7,9 @@ create table bahan_baku
     harga_satuan_bahan  decimal(12, 2)                        not null,
     stok                decimal(10, 2) default 0.00           null,
     stok_kritis         decimal(10, 2) default 0.00           null,
-    status_ketersediaan enum ('Tersedia', 'Menipis', 'Habis') null
+    status_ketersediaan enum ('Tersedia', 'Menipis', 'Habis') null,
+    constraint chk_bahan_baku_stok check (stok >= 0),
+    constraint chk_bahan_baku_kritis check (stok_kritis >= 0)
 );
 
 create table cabang_kantin
@@ -32,7 +34,8 @@ create table pegawai
         primary key,
     nama_pegawai varchar(100) not null,
     jabatan      varchar(50)  null,
-    password     varchar(255) not null
+    password     varchar(255) not null,
+    constraint uq_pegawai_nama unique (nama_pegawai)
 );
 
 create table pelanggan

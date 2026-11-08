@@ -34,24 +34,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Ambil harga_satuan_bahan
-    $stmt_harga = mysqli_prepare($conn, "SELECT harga_satuan_bahan FROM bahan_baku WHERE id_bahan_baku = ?");
-    mysqli_stmt_bind_param($stmt_harga, 'i', $id_bahan_baku);
-    mysqli_stmt_execute($stmt_harga);
-    $harga_data = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_harga));
-    $harga_satuan = $harga_data ? $harga_data['harga_satuan_bahan'] : 0;
-    $subtotal = $qty * $harga_satuan;
+    try {
+        // Ambil harga_satuan_bahan
+        $stmt_harga = mysqli_prepare($conn, "SELECT harga_satuan_bahan FROM bahan_baku WHERE id_bahan_baku = ?");
+        mysqli_stmt_bind_param($stmt_harga, 'i', $id_bahan_baku);
+        mysqli_stmt_execute($stmt_harga);
+        $harga_data = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_harga));
+        $harga_satuan = $harga_data ? $harga_data['harga_satuan_bahan'] : 0;
+        $subtotal = $qty * $harga_satuan;
 
-    $sql  = "INSERT INTO bom (id_produk, id_bahan_baku, qty, subtotal) VALUES (?, ?, ?, ?)";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'iidd', $id_produk, $id_bahan_baku, $qty, $subtotal);
+        $sql  = "INSERT INTO bom (id_produk, id_bahan_baku, qty, subtotal) VALUES (?, ?, ?, ?)";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'iidd', $id_produk, $id_bahan_baku, $qty, $subtotal);
 
-    if (mysqli_stmt_execute($stmt)) {
-        // Auto-sync harga_pokok
-        syncHargaPokok($conn, $id_produk);
-        $_SESSION['flash_success'] = 'Bahan baku berhasil ditambahkan ke resep.';
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menambahkan bahan baku.');
+        if (mysqli_stmt_execute($stmt)) {
+            // Auto-sync harga_pokok
+            syncHargaPokok($conn, $id_produk);
+            $_SESSION['flash_success'] = 'Bahan baku berhasil ditambahkan ke resep.';
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menambahkan bahan baku.');
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal menambahkan bahan baku.');
     }
 
     header('Location: ../bomdetail.php?id=' . $id_produk);

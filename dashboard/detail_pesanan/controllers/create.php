@@ -14,25 +14,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token("../detail_pesanantambah.php?id_pesanan=$id_pesanan");
 
     if (!$id_pesanan || !$id_produk || $qty <= 0) {
-        $_SESSION['flash_error'] = 'Data tidak lengkap atau qty tidak valid.';
+        $_SESSION['flash_error'] = 'Data tidak lengkap atau kuantitas tidak valid.';
         header("Location: ../detail_pesananlihat.php?id=$id_pesanan");
         exit;
     }
 
     mysqli_begin_transaction($conn);
     try {
-        // 1. Ambil harga produk
-        $sql_prod = "SELECT harga_jual FROM produk WHERE id_produk = ?";
+        // 1. Verifikasi status pesanan (hanya pesanan Diproses yang boleh ditambah item)
+        $sql_pes = "SELECT status_pesanan FROM pesanan WHERE id_pesanan = ?";
+        $stmt_pes = mysqli_prepare($conn, $sql_pes);
+        mysqli_stmt_bind_param($stmt_pes, 'i', $id_pesanan);
+        mysqli_stmt_execute($stmt_pes);
+        $pes = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_pes));
+        if (!$pes) {
+            throw new Exception('Pesanan tidak ditemukan.');
+        }
+        if ($pes['status_pesanan'] !== 'Diproses') {
+            throw new Exception('Item tidak dapat ditambahkan karena pesanan sudah berstatus ' . $pes['status_pesanan'] . '.');
+        }
+
+        // 2. Ambil harga produk
+        $sql_prod = "SELECT harga_jual, nama_produk FROM produk WHERE id_produk = ?";
         $stmt_prod = mysqli_prepare($conn, $sql_prod);
         mysqli_stmt_bind_param($stmt_prod, 'i', $id_produk);
         mysqli_stmt_execute($stmt_prod);
         $prod = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_prod));
         
-        if (!$prod) throw new Exception('Produk tidak ditemukan.');
+        if (!$prod) {
+            throw new Exception('Produk tidak ditemukan.');
+        }
         
         $subtotal = $prod['harga_jual'] * $qty;
 
-        // 2. Cek apakah item produk sudah ada di detail_pesanan
+        // 3. Validasi ketersediaan stok bahan baku berdasarkan BOM
+        $sql_bom = "SELECT b.id_bahan_baku, b.qty AS qty_bom, bb.nama_bahan, bb.stok 
+                    FROM bom b 
+                    JOIN bahan_baku bb ON b.id_bahan_baku = bb.id_bahan_baku 
+                    WHERE b.id_produk = ?";
+        $stmt_bom = mysqli_prepare($conn, $sql_bom);
+        mysqli_stmt_bind_param($stmt_bom, 'i', $id_produk);
+        mysqli_stmt_execute($stmt_bom);
+        $res_bom = mysqli_stmt_get_result($stmt_bom);
+
+        $bom_deductions = [];
+        while ($bom = mysqli_fetch_assoc($res_bom)) {
+            $required = $bom['qty_bom'] * $qty;
+            if ($bom['stok'] < $required) {
+                throw new Exception("Stok bahan baku '{$bom['nama_bahan']}' tidak mencukupi (Tersedia: {$bom['stok']}, Dibutuhkan: {$required}).");
+            }
+            $bom_deductions[] = [
+                'id_bahan' => $bom['id_bahan_baku'],
+                'amount'   => $required,
+            ];
+        }
+
+        // 4. Cek apakah item produk sudah ada di detail_pesanan
         $sql_check = "SELECT qty, subtotal FROM detail_pesanan WHERE id_pesanan = ? AND id_produk = ?";
         $stmt_check = mysqli_prepare($conn, $sql_check);
         mysqli_stmt_bind_param($stmt_check, 'ii', $id_pesanan, $id_produk);
@@ -50,34 +87,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_ins = mysqli_prepare($conn, $sql_ins);
             mysqli_stmt_bind_param($stmt_ins, 'iiid', $id_pesanan, $id_produk, $qty, $subtotal);
         }
+        mysqli_stmt_execute($stmt_ins);
 
-        if (!mysqli_stmt_execute($stmt_ins)) throw new Exception(handle_db_error($conn, 'Gagal menyimpan detail pesanan.'));
-
-        // 3. Update total_harga pesanan
+        // 5. Update total_harga pesanan
         $sql_upd = "UPDATE pesanan SET total_harga = total_harga + ? WHERE id_pesanan = ?";
         $stmt_upd = mysqli_prepare($conn, $sql_upd);
         mysqli_stmt_bind_param($stmt_upd, 'di', $subtotal, $id_pesanan);
-        if (!mysqli_stmt_execute($stmt_upd)) throw new Exception(handle_db_error($conn, 'Gagal memperbarui total harga pesanan.'));
+        mysqli_stmt_execute($stmt_upd);
 
-        // 4. Kurangi stok bahan baku (BOM)
-        $sql_bom = "SELECT id_bahan_baku, qty AS qty_bom FROM bom WHERE id_produk = ?";
-        $stmt_bom = mysqli_prepare($conn, $sql_bom);
-        mysqli_stmt_bind_param($stmt_bom, 'i', $id_produk);
-        mysqli_stmt_execute($stmt_bom);
-        $res_bom = mysqli_stmt_get_result($stmt_bom);
-
-        while ($bom = mysqli_fetch_assoc($res_bom)) {
-            $id_bahan = $bom['id_bahan_baku'];
-            $pengurangan = $bom['qty_bom'] * $qty;
-
-            $sql_stok = "UPDATE bahan_baku SET stok = stok - ? WHERE id_bahan_baku = ?";
+        // 6. Kurangi stok bahan baku (BOM)
+        foreach ($bom_deductions as $deduction) {
+            $sql_stok = "UPDATE bahan_baku SET stok = stok - ? WHERE id_bahan_baku = ? AND stok >= ?";
             $stmt_stok = mysqli_prepare($conn, $sql_stok);
-            mysqli_stmt_bind_param($stmt_stok, 'di', $pengurangan, $id_bahan);
-            if (!mysqli_stmt_execute($stmt_stok)) throw new Exception(handle_db_error($conn, 'Gagal mengurangi stok bahan baku.'));
+            mysqli_stmt_bind_param($stmt_stok, 'did', $deduction['amount'], $deduction['id_bahan'], $deduction['amount']);
+            mysqli_stmt_execute($stmt_stok);
+            if (mysqli_stmt_affected_rows($stmt_stok) === 0) {
+                throw new Exception('Gagal memotong stok: stok tidak mencukupi.');
+            }
 
             // Update status ketersediaan
             $stmt_cek = mysqli_prepare($conn, "SELECT stok, stok_kritis FROM bahan_baku WHERE id_bahan_baku = ?");
-            mysqli_stmt_bind_param($stmt_cek, 'i', $id_bahan);
+            mysqli_stmt_bind_param($stmt_cek, 'i', $deduction['id_bahan']);
             mysqli_stmt_execute($stmt_cek);
             $bahan_data = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_cek));
             if ($bahan_data) {
@@ -85,16 +115,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $kritis = $bahan_data['stok_kritis'];
                 $status = ($sisa <= 0) ? 'Habis' : (($sisa <= $kritis) ? 'Menipis' : 'Tersedia');
                 $stmt_stat = mysqli_prepare($conn, "UPDATE bahan_baku SET status_ketersediaan = ? WHERE id_bahan_baku = ?");
-                mysqli_stmt_bind_param($stmt_stat, 'si', $status, $id_bahan);
+                mysqli_stmt_bind_param($stmt_stat, 'si', $status, $deduction['id_bahan']);
                 mysqli_stmt_execute($stmt_stat);
             }
         }
 
         mysqli_commit($conn);
         $_SESSION['flash_success'] = 'Item produk berhasil ditambahkan.';
-    } catch (Exception $e) {
+    } catch (\Throwable $e) {
         mysqli_rollback($conn);
-        $_SESSION['flash_error'] = $e->getMessage();
+        $_SESSION['flash_error'] = handle_db_error($e, $e->getMessage());
     }
 
     header("Location: ../detail_pesananlihat.php?id=$id_pesanan");

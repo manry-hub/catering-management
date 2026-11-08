@@ -17,89 +17,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // ========== BEGIN TRANSACTION ==========
     mysqli_begin_transaction($conn);
     try {
-        // Cek info pesanan (termasuk id_catering jika ada)
-        $sql_info = "SELECT id_catering FROM pesanan WHERE id_pesanan = ?";
+        // Cek info pesanan
+        $sql_info = "SELECT id_catering, status_pesanan FROM pesanan WHERE id_pesanan = ?";
         $stmt_info = mysqli_prepare($conn, $sql_info);
         mysqli_stmt_bind_param($stmt_info, 'i', $id_pesanan);
         mysqli_stmt_execute($stmt_info);
-        $res_info = mysqli_stmt_get_result($stmt_info);
-        $order_info = mysqli_fetch_assoc($res_info);
+        $order_info = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_info));
+
+        if (!$order_info) {
+            throw new Exception('Pesanan tidak ditemukan.');
+        }
+
         $linked_catering_id = $order_info['id_catering'] ?? null;
+        $order_status = $order_info['status_pesanan'];
 
-        // 1. Ambil semua detail_pesanan
-        $sql_detail = "SELECT dp.id_produk, dp.qty FROM detail_pesanan dp WHERE dp.id_pesanan = ?";
-        $stmt_detail = mysqli_prepare($conn, $sql_detail);
-        mysqli_stmt_bind_param($stmt_detail, 'i', $id_pesanan);
-        mysqli_stmt_execute($stmt_detail);
-        $res_detail = mysqli_stmt_get_result($stmt_detail);
+        // 1. Hanya kembalikan stok jika pesanan masih 'Diproses'
+        // Jika pesanan sudah 'Selesai', makanan sudah dikonsumsi (jangan pulihkan stok fiktif).
+        // Jika pesanan sudah 'Dibatalkan', stok sudah dikembalikan saat pembatalan (jangan kembalikan dua kali).
+        if ($order_status === 'Diproses') {
+            $sql_detail = "SELECT dp.id_produk, dp.qty FROM detail_pesanan dp WHERE dp.id_pesanan = ?";
+            $stmt_detail = mysqli_prepare($conn, $sql_detail);
+            mysqli_stmt_bind_param($stmt_detail, 'i', $id_pesanan);
+            mysqli_stmt_execute($stmt_detail);
+            $res_detail = mysqli_stmt_get_result($stmt_detail);
 
-        // 2. Untuk setiap detail, kembalikan stok bahan baku via BOM
-        while ($detail = mysqli_fetch_assoc($res_detail)) {
-            $pid = $detail['id_produk'];
-            $qty_pesanan = $detail['qty'];
+            while ($detail = mysqli_fetch_assoc($res_detail)) {
+                $pid = $detail['id_produk'];
+                $qty_pesanan = $detail['qty'];
 
-            // Baca BOM
-            $sql_bom = "SELECT id_bahan_baku, qty AS qty_bom FROM bom WHERE id_produk = ?";
-            $stmt_bom = mysqli_prepare($conn, $sql_bom);
-            mysqli_stmt_bind_param($stmt_bom, 'i', $pid);
-            mysqli_stmt_execute($stmt_bom);
-            $res_bom = mysqli_stmt_get_result($stmt_bom);
+                $sql_bom = "SELECT id_bahan_baku, qty AS qty_bom FROM bom WHERE id_produk = ?";
+                $stmt_bom = mysqli_prepare($conn, $sql_bom);
+                mysqli_stmt_bind_param($stmt_bom, 'i', $pid);
+                mysqli_stmt_execute($stmt_bom);
+                $res_bom = mysqli_stmt_get_result($stmt_bom);
 
-            while ($bom = mysqli_fetch_assoc($res_bom)) {
-                $id_bahan = $bom['id_bahan_baku'];
-                $pengembalian = $bom['qty_bom'] * $qty_pesanan;
+                while ($bom = mysqli_fetch_assoc($res_bom)) {
+                    $id_bahan = $bom['id_bahan_baku'];
+                    $pengembalian = $bom['qty_bom'] * $qty_pesanan;
 
-                // Kembalikan stok
-                $sql_upd = "UPDATE bahan_baku SET stok = stok + ? WHERE id_bahan_baku = ?";
-                $stmt_upd = mysqli_prepare($conn, $sql_upd);
-                mysqli_stmt_bind_param($stmt_upd, 'di', $pengembalian, $id_bahan);
-                if (!mysqli_stmt_execute($stmt_upd)) {
-                    throw new Exception(handle_db_error($conn, 'Gagal mengembalikan stok bahan baku ID ' . $id_bahan));
-                }
+                    $sql_upd = "UPDATE bahan_baku SET stok = stok + ? WHERE id_bahan_baku = ?";
+                    $stmt_upd = mysqli_prepare($conn, $sql_upd);
+                    mysqli_stmt_bind_param($stmt_upd, 'di', $pengembalian, $id_bahan);
+                    mysqli_stmt_execute($stmt_upd);
 
-                // Update status_ketersediaan
-                $sql_stok = "SELECT stok, stok_kritis FROM bahan_baku WHERE id_bahan_baku = ?";
-                $stmt_stok = mysqli_prepare($conn, $sql_stok);
-                mysqli_stmt_bind_param($stmt_stok, 'i', $id_bahan);
-                mysqli_stmt_execute($stmt_stok);
-                $res_stok = mysqli_stmt_get_result($stmt_stok);
-                $bahan_data = mysqli_fetch_assoc($res_stok);
+                    // Update status_ketersediaan
+                    $sql_stok = "SELECT stok, stok_kritis FROM bahan_baku WHERE id_bahan_baku = ?";
+                    $stmt_stok = mysqli_prepare($conn, $sql_stok);
+                    mysqli_stmt_bind_param($stmt_stok, 'i', $id_bahan);
+                    mysqli_stmt_execute($stmt_stok);
+                    $bahan_data = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_stok));
 
-                if ($bahan_data) {
-                    $sisa = $bahan_data['stok'];
-                    $kritis = $bahan_data['stok_kritis'];
-                    if ($sisa <= 0) $new_status = 'Habis';
-                    elseif ($sisa <= $kritis) $new_status = 'Menipis';
-                    else $new_status = 'Tersedia';
+                    if ($bahan_data) {
+                        $sisa = $bahan_data['stok'];
+                        $kritis = $bahan_data['stok_kritis'];
+                        $new_status = ($sisa <= 0) ? 'Habis' : (($sisa <= $kritis) ? 'Menipis' : 'Tersedia');
 
-                    $sql_status = "UPDATE bahan_baku SET status_ketersediaan = ? WHERE id_bahan_baku = ?";
-                    $stmt_status = mysqli_prepare($conn, $sql_status);
-                    mysqli_stmt_bind_param($stmt_status, 'si', $new_status, $id_bahan);
-                    mysqli_stmt_execute($stmt_status);
+                        $sql_status = "UPDATE bahan_baku SET status_ketersediaan = ? WHERE id_bahan_baku = ?";
+                        $stmt_status = mysqli_prepare($conn, $sql_status);
+                        mysqli_stmt_bind_param($stmt_status, 'si', $new_status, $id_bahan);
+                        mysqli_stmt_execute($stmt_status);
+                    }
                 }
             }
         }
 
-        // 3. DELETE detail_pesanan
+        // 2. Hapus detail_pesanan
         $sql_del_detail = "DELETE FROM detail_pesanan WHERE id_pesanan = ?";
         $stmt_del_detail = mysqli_prepare($conn, $sql_del_detail);
         mysqli_stmt_bind_param($stmt_del_detail, 'i', $id_pesanan);
-        if (!mysqli_stmt_execute($stmt_del_detail)) {
-            throw new Exception(handle_db_error($conn, 'Gagal menghapus detail pesanan.'));
-        }
+        mysqli_stmt_execute($stmt_del_detail);
 
-        // 4. DELETE pesanan
+        // 3. Hapus pesanan
         $sql_del = "DELETE FROM pesanan WHERE id_pesanan = ?";
         $stmt_del = mysqli_prepare($conn, $sql_del);
         mysqli_stmt_bind_param($stmt_del, 'i', $id_pesanan);
-        if (!mysqli_stmt_execute($stmt_del)) {
-            throw new Exception(handle_db_error($conn, 'Gagal menghapus pesanan.'));
-        }
+        mysqli_stmt_execute($stmt_del);
 
-        // 5. Bersihkan data catering terkait untuk mencegah orphaned records
+        // 4. Bersihkan data catering terkait
         if (!empty($linked_catering_id)) {
             $sql_del_cat = "DELETE FROM catering WHERE id_catering = ?";
             $stmt_del_cat = mysqli_prepare($conn, $sql_del_cat);
@@ -107,14 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_execute($stmt_del_cat);
         }
 
-        // ========== COMMIT ==========
         mysqli_commit($conn);
-        $_SESSION['flash_success'] = 'Pesanan berhasil dihapus dan stok dikembalikan.';
+        $_SESSION['flash_success'] = 'Pesanan berhasil dihapus.';
 
-    } catch (Exception $e) {
-        // ========== ROLLBACK ==========
+    } catch (\Throwable $e) {
         mysqli_rollback($conn);
-        $_SESSION['flash_error'] = 'Transaksi gagal: ' . $e->getMessage();
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal menghapus pesanan.');
     }
 
     header('Location: ../pesananlihat.php');
