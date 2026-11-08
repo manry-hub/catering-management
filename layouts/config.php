@@ -1,7 +1,7 @@
 <?php
 $host = 'localhost';
 $user = 'root';
-$password = '';
+$password = 'Sorry.240106';
 $database = 'sistem_pemesanan_kantin_gorjes_db';
 
 $conn = mysqli_connect($host, $user, $password, $database);
