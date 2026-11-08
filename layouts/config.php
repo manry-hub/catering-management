@@ -3,8 +3,10 @@ $host     = getenv('DB_HOST') ?: 'localhost';
 $user     = getenv('DB_USER') ?: 'root';
 $password = getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'Sorry.240106';
 $database = getenv('DB_NAME') ?: 'sistem_pemesanan_kantin_gorjes_db';
+$port     = getenv('DB_PORT') ? intval(getenv('DB_PORT')) : null;
+$socket   = getenv('DB_SOCKET') ?: null;
 
-$conn = mysqli_connect($host, $user, $password, $database);
+$conn = mysqli_connect($host, $user, $password, $database, $port, $socket);
 
 if (!$conn) {
     die('Koneksi gagal: ' . mysqli_connect_error());
