@@ -1,6 +1,10 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], 'bahan_bakulihat.php');
 
 $id = $_GET['id'] ?? 0;
 if (!$id) {
@@ -33,6 +37,7 @@ include '../../layouts/menu.php';
     <p class="text-sm mb-8 text-luxury-mutedFg">Apakah Anda yakin ingin menghapus bahan baku <strong><?= htmlspecialchars($data['nama_bahan']) ?></strong>? Tindakan ini tidak dapat dibatalkan.</p>
     
     <form action="controllers/delete.php" method="POST">
+        <?= csrf_field() ?>
         <input type="hidden" name="id_bahan_baku" value="<?= htmlspecialchars($data['id_bahan_baku']) ?>">
         
         <button type="submit" class="h-12 px-8 bg-red-900 text-luxury-white text-xs tracking-[0.2em] uppercase font-medium relative overflow-hidden group shadow-btn hover:shadow-btn-hover transition-all duration-500">

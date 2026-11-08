@@ -1,12 +1,18 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin'], '../cabang_kantinlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id_cabang_kantin = intval($_POST['id_cabang_kantin'] ?? 0);
+    verify_csrf_token('../cabang_kantinubah.php?id=' . urlencode($id_cabang_kantin));
+
     $errors = [];
-    $id_cabang_kantin   = $_POST['id_cabang_kantin'] ?? 0;
-    $nama_cabang = trim($_POST['nama_cabang'] ?? '');
-    $alamat_cabang      = trim($_POST['alamat_cabang'] ?? '');
+    $nama_cabang   = trim($_POST['nama_cabang'] ?? '');
+    $alamat_cabang = trim($_POST['alamat_cabang'] ?? '');
 
     if (empty($id_cabang_kantin)) {
         $errors[] = 'ID Cabang tidak ditemukan.';

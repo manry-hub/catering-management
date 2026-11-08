@@ -1,8 +1,12 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
 
-$id = $_GET['id'] ?? 0;
+require_role(['Owner', 'Admin', 'Pegawai Catering'], 'cateringlihat.php');
+
+$id = intval($_GET['id'] ?? 0);
 if (!$id) {
     header('Location: cateringlihat.php');
     exit;
@@ -38,6 +42,7 @@ include '../../layouts/menu.php';
 
 <div class="border-t border-luxury-fg/20 pt-8 relative z-10 max-w-2xl bg-luxury-bg/50 backdrop-blur-sm p-8">
     <form action="controllers/update.php" method="POST" class="space-y-8">
+        <?= csrf_field() ?>
         <input type="hidden" name="id_catering" value="<?= htmlspecialchars($data['id_catering']) ?>">
 
         <div class="relative group">
@@ -50,18 +55,6 @@ include '../../layouts/menu.php';
             <textarea name="lokasi_acara" id="lokasi_acara" rows="3" required
                 class="w-full bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent resize-none" placeholder="Lokasi Acara"><?= htmlspecialchars($data['lokasi_acara']) ?></textarea>
             <label for="lokasi_acara" class="absolute left-0 -top-4 text-xs text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent">Lokasi Acara</label>
-        </div>
-
-        <div class="relative group">
-            <input type="number" name="jumlah_porsi" id="jumlah_porsi" required min="1" value="<?= htmlspecialchars($data['jumlah_porsi']) ?>"
-                class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent" placeholder="Jumlah Porsi">
-            <label for="jumlah_porsi" class="absolute left-0 -top-4 text-xs text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent">Jumlah Porsi</label>
-        </div>
-
-        <div class="relative group mt-12">
-            <textarea name="catatan" id="catatan" rows="3"
-                class="w-full bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent resize-none" placeholder="Catatan Tambahan"><?= htmlspecialchars($data['catatan']) ?></textarea>
-            <label for="catatan" class="absolute left-0 -top-4 text-xs text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent">Catatan Tambahan</label>
         </div>
 
         <div class="pt-4">

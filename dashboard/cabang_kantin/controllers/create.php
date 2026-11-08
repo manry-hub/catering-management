@@ -1,11 +1,17 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin'], '../cabang_kantinlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf_token('../cabang_kantintambah.php');
+
     $errors = [];
-    $nama_cabang = trim($_POST['nama_cabang'] ?? '');
-    $alamat_cabang      = trim($_POST['alamat_cabang'] ?? '');
+    $nama_cabang   = trim($_POST['nama_cabang'] ?? '');
+    $alamat_cabang = trim($_POST['alamat_cabang'] ?? '');
 
     if (empty($nama_cabang)) {
         $errors[] = 'Nama Cabang wajib diisi.';

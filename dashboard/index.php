@@ -1,6 +1,14 @@
 <?php
 include '../layouts/session.php';
 include '../layouts/config.php';
+include '../layouts/guard.php';
+
+require_role(['Owner', 'Admin'], match ($_SESSION['jabatan'] ?? '') {
+    'Pegawai Kantin', 'Pegawai Catering' => '/gorjes/dashboard/pesanan/pesananlihat.php',
+    'Pegawai Dapur' => '/gorjes/dashboard/bahan_baku/bahan_bakulihat.php',
+    default => '/gorjes/login.php',
+});
+
 include '../layouts/head.php';
 include '../layouts/menu.php';
 
@@ -12,9 +20,12 @@ $total_order = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM
 // 2. Card: Diproses (active orders)
 $total_diproses = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM pesanan WHERE status_pesanan = 'Diproses'"))['c'];
 
-// 3. Card: Omzet bulan ini
+// 3. Card: Omzet bulan ini (Parameterized)
 $bulan_ini = date('Y-m');
-$omzet_row = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(total_harga) as s FROM pesanan WHERE DATE_FORMAT(tanggal_pesanan, '%Y-%m') = '$bulan_ini' AND status_pesanan != 'Dibatalkan'"));
+$stmt_omzet = mysqli_prepare($conn, "SELECT SUM(total_harga) as s FROM pesanan WHERE DATE_FORMAT(tanggal_pesanan, '%Y-%m') = ? AND status_pesanan != 'Dibatalkan'");
+mysqli_stmt_bind_param($stmt_omzet, 's', $bulan_ini);
+mysqli_stmt_execute($stmt_omzet);
+$omzet_row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_omzet));
 $omzet = $omzet_row['s'] ? $omzet_row['s'] : 0;
 
 // 4. Card: Stok Kritis (Menipis + Habis)
@@ -23,18 +34,24 @@ $stok_kritis_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as 
 // ===================== CHART: Order per Hari (14 hari) =====================
 $order_daily_labels = [];
 $order_daily_data = [];
+$stmt_daily = mysqli_prepare($conn, "SELECT COUNT(*) as c FROM pesanan WHERE DATE(tanggal_pesanan) = ?");
 for ($i = 13; $i >= 0; $i--) {
     $d = date('Y-m-d', strtotime("-$i days"));
     $order_daily_labels[] = date('d M', strtotime($d));
-    $c = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM pesanan WHERE DATE(tanggal_pesanan) = '$d'"))['c'];
+    mysqli_stmt_bind_param($stmt_daily, 's', $d);
+    mysqli_stmt_execute($stmt_daily);
+    $c = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_daily))['c'];
     $order_daily_data[] = intval($c);
 }
 
 // ===================== CHART: Status Order Donut =====================
 $status_labels = ['Diproses', 'Selesai', 'Dibatalkan'];
 $status_data = [];
+$stmt_status_chart = mysqli_prepare($conn, "SELECT COUNT(*) as c FROM pesanan WHERE status_pesanan = ?");
 foreach ($status_labels as $s) {
-    $c = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM pesanan WHERE status_pesanan = '$s'"))['c'];
+    mysqli_stmt_bind_param($stmt_status_chart, 's', $s);
+    mysqli_stmt_execute($stmt_status_chart);
+    $c = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_status_chart))['c'];
     $status_data[] = intval($c);
 }
 

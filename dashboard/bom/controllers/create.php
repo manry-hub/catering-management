@@ -1,13 +1,19 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], '../../produk/produklihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $errors = [];
     $id_produk     = intval($_POST['id_produk'] ?? 0);
     $id_bahan_baku = intval($_POST['id_bahan_baku'] ?? 0);
     $qty           = floatval($_POST['qty'] ?? 0);
 
+    verify_csrf_token('../bomdetail.php?id=' . $id_produk);
+
+    $errors = [];
     if (empty($id_produk)) $errors[] = 'Produk tidak valid.';
     if (empty($id_bahan_baku)) $errors[] = 'Bahan Baku wajib dipilih.';
     if ($qty <= 0) $errors[] = 'Qty harus lebih dari 0.';

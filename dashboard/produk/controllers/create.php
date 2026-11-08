@@ -1,23 +1,29 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], '../produklihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf_token('../produktambah.php');
+
     $errors = [];
     $nama_produk = trim($_POST['nama_produk'] ?? '');
     $kategori    = trim($_POST['kategori'] ?? '');
 
-    $harga_jual  = $_POST['harga_jual'] ?? 0;
-    $harga_pokok = $_POST['harga_pokok'] ?? 0;
+    $harga_jual  = floatval($_POST['harga_jual'] ?? 0);
+    $harga_pokok = floatval($_POST['harga_pokok'] ?? 0);
 
     if (empty($nama_produk)) {
         $errors[] = 'Nama Produk wajib diisi.';
     }
-    if (empty($harga_jual) || !is_numeric($harga_jual)) {
-        $errors[] = 'Harga Jual wajib diisi dengan angka valid.';
+    if ($harga_jual <= 0) {
+        $errors[] = 'Harga Jual wajib diisi dengan angka valid lebih dari 0.';
     }
-    if (empty($harga_pokok) || !is_numeric($harga_pokok)) {
-        $errors[] = 'Harga Pokok wajib diisi dengan angka valid.';
+    if ($harga_pokok < 0) {
+        $errors[] = 'Harga Pokok tidak boleh kurang dari 0.';
     }
 
     if (!empty($errors)) {

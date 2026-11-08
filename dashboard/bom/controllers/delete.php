@@ -1,10 +1,16 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], '../../produk/produklihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_produk     = intval($_POST['id_produk'] ?? 0);
     $id_bahan_baku = intval($_POST['id_bahan_baku'] ?? 0);
+
+    verify_csrf_token('../bomdetail.php?id=' . $id_produk);
 
     if (empty($id_produk) || empty($id_bahan_baku)) {
         $_SESSION['flash_error'] = 'Data tidak valid.';

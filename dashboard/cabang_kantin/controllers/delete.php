@@ -1,9 +1,15 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin'], '../cabang_kantinlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_cabang_kantin = $_POST['id_cabang'] ?? 0;
+    verify_csrf_token('../cabang_kantinlihat.php');
+
+    $id_cabang_kantin = intval($_POST['id_cabang'] ?? $_POST['id_cabang_kantin'] ?? 0);
 
     if (!empty($id_cabang_kantin)) {
         $sql  = "DELETE FROM cabang_kantin WHERE id_cabang_kantin = ?";

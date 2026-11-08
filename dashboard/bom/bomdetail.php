@@ -1,6 +1,10 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], '../produk/produklihat.php');
 
 $id = intval($_GET['id'] ?? 0);
 if (!$id) {
@@ -101,6 +105,7 @@ include '../../layouts/menu.php';
 
             <div id="harga-jual-form" class="hidden mt-1">
                 <form action="controllers/update_harga_jual.php" method="POST" class="flex items-center gap-2">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="id_produk" value="<?= $produk['id_produk'] ?>">
                     <input type="number" name="harga_jual" min="0" step="0.01"
                         value="<?= htmlspecialchars($produk['harga_jual']) ?>" required
@@ -141,6 +146,7 @@ include '../../layouts/menu.php';
     <!-- Add BOM Form (hidden by default) -->
     <div id="bom-form" class="hidden mb-8 glass-panel p-6 border-l-4 border-luxury-accent">
         <form action="controllers/create.php" method="POST" class="flex flex-col sm:flex-row items-end gap-4">
+            <?= csrf_field() ?>
             <input type="hidden" name="id_produk" value="<?= $produk['id_produk'] ?>">
             <div class="flex-1 w-full">
                 <label class="block text-[10px] tracking-[0.2em] uppercase text-luxury-mutedFg mb-2">Bahan Baku</label>
@@ -207,6 +213,7 @@ include '../../layouts/menu.php';
 
                             <form action="controllers/delete.php" method="POST" class="inline"
                                 onsubmit="return confirm('Hapus bahan ini dari resep?')">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="id_produk" value="<?= $produk['id_produk'] ?>">
                                 <input type="hidden" name="id_bahan_baku" value="<?= $bom['id_bahan_baku'] ?>">
                                 <button type="submit"
@@ -242,6 +249,7 @@ include '../../layouts/menu.php';
                                         <?= number_format($produk['harga_pokok'], 0, ',', '.') ?>).
                                     </span>
                                     <form action="controllers/sync_harga_pokok.php" method="POST" class="inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="id_produk" value="<?= $produk['id_produk'] ?>">
                                         <input type="hidden" name="total_bom" value="<?= $total_bom ?>">
                                         <button type="submit"

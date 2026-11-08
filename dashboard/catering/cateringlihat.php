@@ -1,6 +1,9 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Catering'], '../index.php');
 include '../../layouts/head.php';
 include '../../layouts/menu.php';
 

@@ -1,6 +1,10 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], 'produklihat.php');
 include '../../layouts/head.php';
 include '../../layouts/menu.php';
 ?>
@@ -20,6 +24,7 @@ include '../../layouts/menu.php';
 
 <div class="border-t border-luxury-fg/20 pt-8 relative z-10 max-w-2xl bg-luxury-bg/50 backdrop-blur-sm p-8">
     <form action="controllers/create.php" method="POST" class="space-y-8">
+        <?= csrf_field() ?>
         <div class="relative group">
             <input type="text" name="nama_produk" id="nama_produk" required
                 class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent"

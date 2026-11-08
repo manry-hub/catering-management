@@ -1,12 +1,18 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pelangganlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id_pelanggan = intval($_POST['id_pelanggan'] ?? 0);
+    verify_csrf_token('../pelangganubah.php?id=' . urlencode($id_pelanggan));
+
     $errors = [];
-    $id_pelanggan   = $_POST['id_pelanggan'] ?? 0;
-    $nama_pelanggan = trim($_POST['nama_pelanggan'] ?? '');
-    $no_telp        = trim($_POST['no_telp'] ?? '');
+    $nama_pelanggan   = trim($_POST['nama_pelanggan'] ?? '');
+    $no_telp          = trim($_POST['no_telp'] ?? '');
     $alamat_pelanggan = trim($_POST['alamat_pelanggan'] ?? '');
 
     if (empty($id_pelanggan)) {

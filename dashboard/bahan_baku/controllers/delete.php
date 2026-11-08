@@ -1,9 +1,15 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], '../bahan_bakulihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_bahan_baku = $_POST['id_bahan_baku'] ?? 0;
+    verify_csrf_token('../bahan_bakulihat.php');
+
+    $id_bahan_baku = intval($_POST['id_bahan_baku'] ?? 0);
 
     if (!empty($id_bahan_baku)) {
         $sql  = "DELETE FROM bahan_baku WHERE id_bahan_baku = ?";

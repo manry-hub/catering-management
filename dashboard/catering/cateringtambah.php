@@ -1,6 +1,11 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Catering'], 'cateringlihat.php');
+
 include '../../layouts/head.php';
 include '../../layouts/menu.php';
 ?>
@@ -18,6 +23,7 @@ include '../../layouts/menu.php';
 
 <div class="border-t border-luxury-fg/20 pt-8 relative z-10 max-w-2xl bg-luxury-bg/50 backdrop-blur-sm p-8">
     <form action="controllers/create.php" method="POST" class="space-y-8">
+        <?= csrf_field() ?>
         <div class="relative group">
             <input type="date" name="tanggal_acara" id="tanggal_acara" required
                 class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer">
@@ -28,18 +34,6 @@ include '../../layouts/menu.php';
             <textarea name="lokasi_acara" id="lokasi_acara" rows="3" required
                 class="w-full bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent resize-none" placeholder="Lokasi Acara"></textarea>
             <label for="lokasi_acara" class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Lokasi Acara</label>
-        </div>
-
-        <div class="relative group">
-            <input type="number" name="jumlah_porsi" id="jumlah_porsi" required min="1"
-                class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent" placeholder="Jumlah Porsi">
-            <label for="jumlah_porsi" class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Jumlah Porsi</label>
-        </div>
-
-        <div class="relative group mt-12">
-            <textarea name="catatan" id="catatan" rows="3"
-                class="w-full bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent resize-none" placeholder="Catatan Tambahan"></textarea>
-            <label for="catatan" class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Catatan Tambahan (Opsional)</label>
         </div>
 
         <div class="pt-4">

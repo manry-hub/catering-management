@@ -1,9 +1,15 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Dapur'], '../produklihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_produk = $_POST['id_produk'] ?? 0;
+    verify_csrf_token('../produklihat.php');
+
+    $id_produk = intval($_POST['id_produk'] ?? 0);
 
     if (!empty($id_produk)) {
         $sql  = "DELETE FROM produk WHERE id_produk = ?";

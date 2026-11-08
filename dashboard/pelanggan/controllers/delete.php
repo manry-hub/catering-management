@@ -1,9 +1,15 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pelangganlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_pelanggan = $_POST['id_pelanggan'] ?? 0;
+    verify_csrf_token('../pelangganlihat.php');
+
+    $id_pelanggan = intval($_POST['id_pelanggan'] ?? 0);
 
     if (!empty($id_pelanggan)) {
         $sql  = "DELETE FROM pelanggan WHERE id_pelanggan = ?";
