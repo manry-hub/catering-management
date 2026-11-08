@@ -29,7 +29,7 @@ $result = mysqli_query($conn, $sql);
 
 <?php if (isset($_SESSION['flash_error'])): ?>
     <div class="mb-8 p-4 border border-red-900/20 text-red-900 text-sm bg-red-50/50 relative z-10">
-        <?= $_SESSION['flash_error'] ?>
+        <?= render_flash_error() ?>
     </div>
     <?php unset($_SESSION['flash_error']); ?>
 <?php endif; ?>
@@ -40,9 +40,9 @@ $result = mysqli_query($conn, $sql);
             <tr class="border-b border-luxury-fg/10 uppercase text-[10px] tracking-[0.2em] text-luxury-mutedFg">
                 <th class="py-4 px-4 font-normal">ID</th>
                 <th class="py-4 px-4 font-normal">Nama Bahan</th>
-                <th class="py-4 px-4 font-normal">Harga / Satuan</th>
-                <th class="py-4 px-4 font-normal">Stok Sekarang</th>
-                <th class="py-4 px-4 font-normal">Stok Kritis</th>
+                <th class="py-4 px-4 font-normal text-right">Harga / Satuan</th>
+                <th class="py-4 px-4 font-normal text-right">Stok Sekarang</th>
+                <th class="py-4 px-4 font-normal text-right">Stok Kritis</th>
                 <th class="py-4 px-4 font-normal">Status</th>
                 <th class="py-4 px-4 font-normal text-right">Aksi</th>
             </tr>
@@ -50,18 +50,26 @@ $result = mysqli_query($conn, $sql);
         <tbody>
             <?php while ($row = mysqli_fetch_assoc($result)): ?>
                 <?php
-                    // Set color based on status
-                    $statusColor = 'text-green-700';
-                    if ($row['status_ketersediaan'] === 'Menipis') $statusColor = 'text-yellow-600';
-                    if ($row['status_ketersediaan'] === 'Habis') $statusColor = 'text-red-700';
+                    // Set accessible high-contrast badge based on status
+                    if ($row['status_ketersediaan'] === 'Habis') {
+                        $statusBadge = 'text-rose-800 bg-rose-50 border border-rose-200/80';
+                    } elseif ($row['status_ketersediaan'] === 'Menipis') {
+                        $statusBadge = 'text-amber-900 bg-amber-50 border border-amber-200/80';
+                    } else {
+                        $statusBadge = 'text-emerald-800 bg-emerald-50 border border-emerald-200/80';
+                    }
                 ?>
                 <tr class="border-b border-[#1A1A1A]/10 hover:bg-[#F9F8F6] transition-colors duration-300">
                     <td class="py-4 px-4 font-mono text-xs text-luxury-mutedFg"><?= htmlspecialchars($row['id_bahan_baku']) ?></td>
                     <td class="py-4 px-4 font-serif"><?= htmlspecialchars($row['nama_bahan']) ?></td>
-                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg">Rp <?= number_format($row['harga_satuan_bahan'], 0, ',', '.') ?> / <?= htmlspecialchars($row['satuan']) ?></td>
-                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg"><?= htmlspecialchars($row['stok']) ?></td>
-                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg"><?= htmlspecialchars($row['stok_kritis']) ?></td>
-                    <td class="py-4 px-4 font-mono text-xs uppercase tracking-[0.1em] <?= $statusColor ?>"><?= htmlspecialchars($row['status_ketersediaan']) ?></td>
+                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg text-right tabular-nums">Rp <?= number_format($row['harga_satuan_bahan'], 0, ',', '.') ?> / <?= htmlspecialchars($row['satuan']) ?></td>
+                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg text-right tabular-nums"><?= htmlspecialchars($row['stok']) ?></td>
+                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg text-right tabular-nums"><?= htmlspecialchars($row['stok_kritis']) ?></td>
+                    <td class="py-4 px-4">
+                        <span class="inline-block px-2.5 py-1 text-[9px] tracking-[0.15em] uppercase font-semibold <?= $statusBadge ?>">
+                            <?= htmlspecialchars($row['status_ketersediaan']) ?>
+                        </span>
+                    </td>
                     <td class="py-4 px-4 text-right space-x-4">
                         <a href="bahan_bakuubah.php?id=<?= $row['id_bahan_baku'] ?>" class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-accent transition-colors">Ubah</a>
                         <a href="bahan_bakuhapus.php?id=<?= $row['id_bahan_baku'] ?>" class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-red-700 transition-colors">Hapus</a>

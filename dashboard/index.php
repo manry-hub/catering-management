@@ -92,6 +92,8 @@ $top_produk = mysqli_query($conn, "
     SELECT p.nama_produk, p.kategori, SUM(dp.qty) as total_terjual, SUM(dp.subtotal) as total_revenue
     FROM detail_pesanan dp
     JOIN produk p ON dp.id_produk = p.id_produk
+    JOIN pesanan pes ON dp.id_pesanan = pes.id_pesanan
+    WHERE pes.status_pesanan != 'Dibatalkan'
     GROUP BY dp.id_produk
     ORDER BY total_terjual DESC
     LIMIT 6
@@ -216,6 +218,15 @@ mysqli_data_seek($top_produk, 0);
                 </thead>
                 <tbody>
                     <?php while ($p = mysqli_fetch_assoc($pesanan_terbaru)): ?>
+                        <?php
+                        if ($p['status_pesanan'] === 'Selesai') {
+                            $statusBadge = 'text-emerald-800 bg-emerald-50 border border-emerald-200/80';
+                        } elseif ($p['status_pesanan'] === 'Dibatalkan') {
+                            $statusBadge = 'text-rose-800 bg-rose-50 border border-rose-200/80 line-through';
+                        } else {
+                            $statusBadge = 'text-amber-900 bg-amber-50 border border-amber-200/80';
+                        }
+                        ?>
                         <tr class="border-b border-[#1A1A1A]/10 hover:bg-[#F9F8F6] transition-colors">
                             <td class="py-4 px-3 font-mono text-xs text-luxury-mutedFg">#<?= $p['id_pesanan'] ?></td>
                             <td class="py-4 px-3 font-serif text-sm"><?= htmlspecialchars($p['nama_pelanggan'] ?? '-') ?>
@@ -224,17 +235,21 @@ mysqli_data_seek($top_produk, 0);
                                 <span
                                     class="text-[9px] tracking-[0.2em] uppercase text-luxury-mutedFg"><?= $p['jenis_pesanan'] ?></span>
                             </td>
-                            <td class="py-4 px-3 text-sm font-medium">Rp
+                            <td class="py-4 px-3 text-sm font-medium font-mono tabular-nums">Rp
                                 <?= number_format($p['total_harga'], 0, ',', '.') ?>
                             </td>
                             <td class="py-4 px-3">
-                                <span
-                                    class="text-[9px] tracking-[0.2em] uppercase <?= $p['status_pesanan'] === 'Selesai' ? 'text-luxury-fg font-bold' : ($p['status_pesanan'] === 'Dibatalkan' ? 'text-red-800 line-through' : 'text-luxury-mutedFg') ?>">
-                                    <?= $p['status_pesanan'] ?>
+                                <span class="inline-block px-2 py-0.5 text-[9px] tracking-[0.15em] uppercase font-semibold <?= $statusBadge ?>">
+                                    <?= htmlspecialchars($p['status_pesanan']) ?>
                                 </span>
                             </td>
                         </tr>
                     <?php endwhile; ?>
+                    <?php if (mysqli_num_rows($pesanan_terbaru) === 0): ?>
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-luxury-mutedFg text-sm">Belum ada pesanan terbaru.</td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>

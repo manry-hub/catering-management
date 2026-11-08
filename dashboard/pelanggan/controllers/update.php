@@ -23,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($no_telp)) {
         $errors[] = 'Nomor Telepon wajib diisi.';
+    } elseif (!preg_match('/^[0-9+\-\s()]{8,20}$/', $no_telp)) {
+        $errors[] = 'Format Nomor Telepon tidak valid (hanya angka, spasi, tanda + atau - dengan panjang 8-20 digit).';
     }
 
     if (!empty($errors)) {
@@ -31,14 +33,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $sql  = "UPDATE pelanggan SET nama_pelanggan = ?, no_telp = ?, alamat_pelanggan = ? WHERE id_pelanggan = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'sssi', $nama_pelanggan, $no_telp, $alamat_pelanggan, $id_pelanggan);
+    try {
+        $sql  = "UPDATE pelanggan SET nama_pelanggan = ?, no_telp = ?, alamat_pelanggan = ? WHERE id_pelanggan = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'sssi', $nama_pelanggan, $no_telp, $alamat_pelanggan, $id_pelanggan);
 
-    if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = 'Data pelanggan berhasil diubah.';
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah data pelanggan.');
+        if (mysqli_stmt_execute($stmt)) {
+            $_SESSION['flash_success'] = 'Data pelanggan berhasil diubah.';
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah data pelanggan.');
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal mengubah data pelanggan.');
     }
 
     header('Location: ../pelangganlihat.php');

@@ -68,38 +68,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <?php include 'layouts/head.php'; ?>
 <div class="min-h-screen w-full flex items-center justify-center p-6 relative z-10">
-    <!-- Decorator circles for glass effect background -->
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-luxury-accent/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-    <div class="absolute top-1/3 right-1/4 w-96 h-96 bg-amber-100/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob" style="animation-delay: 2s;"></div>
-
-    <div class="w-full max-w-md relative z-20 glass-panel p-12 shadow-hero">
-        <div class="text-center mb-12">
-            <h1 class="font-serif text-5xl tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-luxury-accent to-yellow-600">Gorjes</h1>
+    <div class="w-full max-w-md relative z-20 glass-panel p-10 md:p-12 border-t-2 border-t-luxury-accent bg-luxury-bg/90 backdrop-blur-sm shadow-hero">
+        <div class="text-center mb-10">
+            <h1 class="font-serif text-4xl md:text-5xl tracking-tight mb-2 text-luxury-fg">Gorjes</h1>
             <p class="text-[10px] tracking-[0.3em] uppercase text-luxury-mutedFg font-medium">Portal Admin</p>
         </div>
 
         <?php if ($error): ?>
-            <div class="mb-8 p-4 rounded-lg border border-red-200 text-red-700 text-sm text-center bg-red-50/80 backdrop-blur-sm">
+            <div class="mb-8 p-4 border border-red-900/20 text-red-900 text-sm text-center bg-red-50/70">
                 <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="" class="space-y-6">
+        <form method="POST" action="" class="space-y-8">
             <?= csrf_field() ?>
             <div class="relative group">
                 <input type="text" name="nama_pegawai" id="nama_pegawai" required 
-                    class="w-full glass-input text-sm peer placeholder-transparent" placeholder="Nama Pegawai">
-                <label for="nama_pegawai" class="absolute left-4 top-3 text-luxury-mutedFg text-sm transition-all duration-300 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-2.5 peer-valid:text-xs peer-valid:text-luxury-mutedFg bg-white/60 backdrop-blur-md px-1 rounded">Nama Pegawai</label>
+                    class="w-full h-12 bg-transparent border-b border-luxury-fg/30 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-300 peer placeholder-transparent" placeholder="Nama Pegawai">
+                <label for="nama_pegawai" class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic text-sm transition-all duration-300 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Nama Pegawai</label>
             </div>
 
-            <div class="relative group mt-8">
+            <div class="relative group">
                 <input type="password" name="password" id="password" required 
-                    class="w-full glass-input text-sm peer placeholder-transparent" placeholder="Password">
-                <label for="password" class="absolute left-4 top-3 text-luxury-mutedFg text-sm transition-all duration-300 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-2.5 peer-valid:text-xs peer-valid:text-luxury-mutedFg bg-white/60 backdrop-blur-md px-1 rounded">Password</label>
+                    class="w-full h-12 bg-transparent border-b border-luxury-fg/30 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-300 peer placeholder-transparent" placeholder="Password">
+                <label for="password" class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic text-sm transition-all duration-300 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Password</label>
             </div>
 
-            <button type="submit" class="w-full h-12 bg-luxury-fg text-luxury-white text-xs tracking-[0.2em] uppercase font-medium relative overflow-hidden group shadow-btn hover:shadow-btn-hover mt-10 block rounded-xl">
-                <span class="absolute inset-0 bg-gradient-to-r from-luxury-accent to-yellow-600 -translate-x-full group-hover:translate-x-0 transition-transform duration-500" style="transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);"></span>
+            <button type="submit" class="w-full h-12 bg-luxury-fg text-luxury-white text-xs tracking-[0.2em] uppercase font-medium relative overflow-hidden group shadow-btn hover:shadow-btn-hover mt-8 block transition-all duration-500">
+                <span class="absolute inset-0 bg-luxury-accent -translate-x-full group-hover:translate-x-0 transition-transform duration-500" style="transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);"></span>
                 <span class="relative z-10 text-white font-semibold">Sign In</span>
             </button>
         </form>

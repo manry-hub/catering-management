@@ -4,7 +4,7 @@ include '../../../layouts/session.php';
 include '../../../layouts/csrf.php';
 include '../../../layouts/guard.php';
 
-require_role(['Owner', 'Admin', 'Pegawai Kantin'], '../cabang_kantinlihat.php');
+require_role(['Owner', 'Admin'], '../cabang_kantinlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token('../cabang_kantintambah.php');
@@ -23,14 +23,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $sql  = "INSERT INTO cabang_kantin (nama_cabang, alamat_cabang) VALUES (?, ?)";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ss', $nama_cabang, $alamat_cabang);
+    try {
+        $sql  = "INSERT INTO cabang_kantin (nama_cabang, alamat_cabang) VALUES (?, ?)";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'ss', $nama_cabang, $alamat_cabang);
 
-    if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = 'Data cabang kantin berhasil ditambahkan.';
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menambahkan data cabang kantin.');
+        if (mysqli_stmt_execute($stmt)) {
+            $_SESSION['flash_success'] = 'Data cabang kantin berhasil ditambahkan.';
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal menambahkan data cabang kantin.');
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal menambahkan data cabang kantin.');
     }
 
     header('Location: ../cabang_kantinlihat.php');

@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($tanggal_acara)) {
         $errors[] = 'Tanggal Acara wajib diisi.';
+    } elseif (strtotime($tanggal_acara) === false) {
+        $errors[] = 'Format Tanggal Acara tidak valid.';
     }
     if (empty($lokasi_acara)) {
         $errors[] = 'Lokasi Acara wajib diisi.';
@@ -30,14 +32,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $sql  = "UPDATE catering SET tanggal_acara = ?, lokasi_acara = ? WHERE id_catering = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ssi', $tanggal_acara, $lokasi_acara, $id_catering);
+    try {
+        $sql  = "UPDATE catering SET tanggal_acara = ?, lokasi_acara = ? WHERE id_catering = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'ssi', $tanggal_acara, $lokasi_acara, $id_catering);
 
-    if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = 'Jadwal catering berhasil diubah.';
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah jadwal catering.');
+        if (mysqli_stmt_execute($stmt)) {
+            $_SESSION['flash_success'] = 'Jadwal catering berhasil diubah.';
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah jadwal catering.');
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal mengubah jadwal catering.');
     }
 
     header('Location: ../cateringlihat.php');

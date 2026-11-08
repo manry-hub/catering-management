@@ -6,23 +6,17 @@ include '../../layouts/csrf.php';
 
 require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pesanan/pesananlihat.php');
 
-$id_detail_pesanan = intval($_GET['id'] ?? 0);
 $id_pesanan = intval($_GET['id_pesanan'] ?? 0);
 $id_produk = intval($_GET['id_produk'] ?? 0);
 
-if ($id_detail_pesanan > 0) {
-    $sql = "SELECT dp.*, pr.nama_produk FROM detail_pesanan dp JOIN produk pr ON dp.id_produk = pr.id_produk WHERE dp.id_detail_pesanan = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'i', $id_detail_pesanan);
-} elseif ($id_pesanan > 0 && $id_produk > 0) {
-    $sql = "SELECT dp.*, pr.nama_produk FROM detail_pesanan dp JOIN produk pr ON dp.id_produk = pr.id_produk WHERE dp.id_pesanan = ? AND dp.id_produk = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ii', $id_pesanan, $id_produk);
-} else {
+if ($id_pesanan <= 0 || $id_produk <= 0) {
     header('Location: ../pesanan/pesananlihat.php');
     exit;
 }
 
+$sql = "SELECT dp.*, pr.nama_produk FROM detail_pesanan dp JOIN produk pr ON dp.id_produk = pr.id_produk WHERE dp.id_pesanan = ? AND dp.id_produk = ?";
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, 'ii', $id_pesanan, $id_produk);
 mysqli_stmt_execute($stmt);
 $data = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
@@ -31,8 +25,6 @@ if (!$data) {
     header('Location: ../pesanan/pesananlihat.php');
     exit;
 }
-
-$id_pesanan = $data['id_pesanan'];
 
 include '../../layouts/head.php';
 include '../../layouts/menu.php';
@@ -53,16 +45,18 @@ include '../../layouts/menu.php';
     
     <form action="controllers/delete.php" method="POST" class="flex gap-4">
         <?= csrf_field() ?>
-        <input type="hidden" name="id_detail_pesanan" value="<?= htmlspecialchars($data['id_detail_pesanan'] ?? 0) ?>">
         <input type="hidden" name="id_pesanan" value="<?= htmlspecialchars($data['id_pesanan']) ?>">
         <input type="hidden" name="id_produk" value="<?= htmlspecialchars($data['id_produk']) ?>">
         
-        <button type="submit" class="h-12 px-8 bg-red-600 text-white text-xs tracking-[0.2em] uppercase font-medium rounded-lg hover:bg-red-700 transition-colors flex-1">
+        <button type="submit" class="h-12 px-8 bg-red-900 text-white text-xs tracking-[0.2em] uppercase font-medium hover:bg-red-800 transition-colors flex-1 shadow-btn hover:shadow-btn-hover">
             Ya, Hapus Item
         </button>
-        <a href="detail_pesananlihat.php?id=<?= $id_pesanan ?>" class="h-12 px-8 bg-black/5 text-luxury-fg text-xs tracking-[0.2em] uppercase font-medium rounded-lg hover:bg-black/10 transition-colors flex items-center justify-center flex-1">
+        <a href="detail_pesananlihat.php?id=<?= $id_pesanan ?>" class="h-12 px-8 border border-luxury-fg/20 text-xs tracking-[0.2em] uppercase font-medium hover:bg-black/5 transition-colors flex items-center justify-center">
             Batal
         </a>
     </form>
 </div>
-<?php include '../../layouts/footer.php'; include '../../layouts/vendor-scripts.php'; ?>
+<?php
+include '../../layouts/footer.php';
+include '../../layouts/vendor-scripts.php';
+?>

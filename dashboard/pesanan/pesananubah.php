@@ -41,7 +41,7 @@ include '../../layouts/menu.php';
 
 <?php if (isset($_SESSION['flash_error'])): ?>
     <div class="mb-8 p-4 rounded-lg border border-red-200 text-red-800 text-sm bg-red-50/80 backdrop-blur-sm relative z-10">
-        <?= $_SESSION['flash_error'] ?>
+        <?= render_flash_error() ?>
     </div>
     <?php unset($_SESSION['flash_error']); ?>
 <?php endif; ?>

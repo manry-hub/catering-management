@@ -29,7 +29,7 @@ $result = mysqli_query($conn, $sql);
 
 <?php if (isset($_SESSION['flash_error'])): ?>
     <div class="mb-8 p-4 border border-red-900/20 text-red-900 text-sm bg-red-50/50 relative z-10">
-        <?= $_SESSION['flash_error'] ?>
+        <?= render_flash_error() ?>
     </div>
     <?php unset($_SESSION['flash_error']); ?>
 <?php endif; ?>
@@ -41,8 +41,8 @@ $result = mysqli_query($conn, $sql);
                 <th class="py-4 px-4 font-normal">ID</th>
                 <th class="py-4 px-4 font-normal">Nama Produk</th>
                 <th class="py-4 px-4 font-normal">Kategori</th>
-                <th class="py-4 px-4 font-normal">Harga Jual</th>
-                <th class="py-4 px-4 font-normal">Harga Pokok</th>
+                <th class="py-4 px-4 font-normal text-right">Harga Jual</th>
+                <th class="py-4 px-4 font-normal text-right">Harga Pokok</th>
                 <th class="py-4 px-4 font-normal text-right">Aksi</th>
             </tr>
         </thead>
@@ -52,8 +52,8 @@ $result = mysqli_query($conn, $sql);
                     <td class="py-4 px-4 font-mono text-xs text-luxury-mutedFg"><?= htmlspecialchars($row['id_produk']) ?></td>
                     <td class="py-4 px-4 font-serif"><?= htmlspecialchars($row['nama_produk']) ?></td>
                     <td class="py-4 px-4 font-mono text-xs uppercase text-luxury-mutedFg"><?= htmlspecialchars($row['kategori'] ?? '-') ?></td>
-                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg">Rp <?= number_format($row['harga_jual'], 0, ',', '.') ?></td>
-                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg">Rp <?= number_format($row['harga_pokok'], 0, ',', '.') ?></td>
+                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg text-right tabular-nums">Rp <?= number_format($row['harga_jual'], 0, ',', '.') ?></td>
+                    <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg text-right tabular-nums">Rp <?= number_format($row['harga_pokok'], 0, ',', '.') ?></td>
                     <td class="py-4 px-4 text-right space-x-4">
                         <a href="../bom/bomdetail.php?id=<?= $row['id_produk'] ?>&export=1" class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-accent transition-colors">Export PDF</a>
                         <a href="../bom/bomdetail.php?id=<?= $row['id_produk'] ?>" class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-accent transition-colors">Detail</a>
@@ -64,7 +64,7 @@ $result = mysqli_query($conn, $sql);
             <?php endwhile; ?>
             <?php if (mysqli_num_rows($result) === 0): ?>
                 <tr>
-                    <td colspan="4" class="py-8 text-center text-luxury-mutedFg text-sm">Belum ada data produk.</td>
+                    <td colspan="6" class="py-8 text-center text-luxury-mutedFg text-sm">Belum ada data produk.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

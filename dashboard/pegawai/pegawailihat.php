@@ -31,7 +31,7 @@ $result = mysqli_query($conn, $sql);
 
 <?php if (isset($_SESSION['flash_error'])): ?>
     <div class="mb-8 p-4 border border-red-900/20 text-red-900 text-sm bg-red-50/50 relative z-10">
-        <?= $_SESSION['flash_error'] ?>
+        <?= render_flash_error() ?>
     </div>
     <?php unset($_SESSION['flash_error']); ?>
 <?php endif; ?>
@@ -60,6 +60,11 @@ $result = mysqli_query($conn, $sql);
                     </td>
                 </tr>
             <?php endwhile; ?>
+            <?php if (mysqli_num_rows($result) === 0): ?>
+                <tr>
+                    <td colspan="4" class="py-8 text-center text-luxury-mutedFg text-sm">Belum ada data pegawai.</td>
+                </tr>
+            <?php endif; ?>
         </tbody>
     </table>
 </div>

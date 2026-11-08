@@ -4,10 +4,10 @@ include '../../../layouts/session.php';
 include '../../../layouts/csrf.php';
 include '../../../layouts/guard.php';
 
-require_role(['Owner', 'Admin', 'Pegawai Kantin'], '../cabang_kantinlihat.php');
+require_role(['Owner', 'Admin'], '../cabang_kantinlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_cabang_kantin = intval($_POST['id_cabang_kantin'] ?? 0);
+    $id_cabang_kantin = intval($_POST['id_cabang'] ?? $_POST['id_cabang_kantin'] ?? 0);
     verify_csrf_token('../cabang_kantinubah.php?id=' . urlencode($id_cabang_kantin));
 
     $errors = [];
@@ -27,14 +27,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $sql  = "UPDATE cabang_kantin SET nama_cabang = ?, alamat_cabang = ? WHERE id_cabang_kantin = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ssi', $nama_cabang, $alamat_cabang, $id_cabang_kantin);
+    try {
+        $sql  = "UPDATE cabang_kantin SET nama_cabang = ?, alamat_cabang = ? WHERE id_cabang_kantin = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'ssi', $nama_cabang, $alamat_cabang, $id_cabang_kantin);
 
-    if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = 'Data cabang kantin berhasil diubah.';
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah data cabang kantin.');
+        if (mysqli_stmt_execute($stmt)) {
+            $_SESSION['flash_success'] = 'Data cabang kantin berhasil diubah.';
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah data cabang kantin.');
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal mengubah data cabang kantin.');
     }
 
     header('Location: ../cabang_kantinlihat.php');

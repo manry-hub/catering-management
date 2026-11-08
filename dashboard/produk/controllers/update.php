@@ -29,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($harga_pokok < 0) {
         $errors[] = 'Harga Pokok tidak boleh kurang dari 0.';
     }
+    if ($harga_pokok > 0 && $harga_jual < $harga_pokok) {
+        $errors[] = 'Harga Jual tidak boleh lebih rendah dari Harga Pokok (menjual dengan margin rugi).';
+    }
 
     if (!empty($errors)) {
         $_SESSION['flash_error'] = implode('<br>', $errors);
@@ -36,14 +39,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $sql  = "UPDATE produk SET nama_produk = ?, kategori = ?, harga_jual = ?, harga_pokok = ? WHERE id_produk = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ssddi', $nama_produk, $kategori, $harga_jual, $harga_pokok, $id_produk);
+    try {
+        $sql  = "UPDATE produk SET nama_produk = ?, kategori = ?, harga_jual = ?, harga_pokok = ? WHERE id_produk = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 'ssddi', $nama_produk, $kategori, $harga_jual, $harga_pokok, $id_produk);
 
-    if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = 'Data produk berhasil diubah.';
-    } else {
-        $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah data produk.');
+        if (mysqli_stmt_execute($stmt)) {
+            $_SESSION['flash_success'] = 'Data produk berhasil diubah.';
+        } else {
+            $_SESSION['flash_error'] = handle_db_error($conn, 'Gagal mengubah data produk.');
+        }
+    } catch (\mysqli_sql_exception $e) {
+        $_SESSION['flash_error'] = handle_db_error($e, 'Gagal mengubah data produk.');
     }
 
     header('Location: ../produklihat.php');

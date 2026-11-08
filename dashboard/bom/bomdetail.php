@@ -56,9 +56,9 @@ include '../../layouts/menu.php';
             class="text-xs tracking-[0.2em] uppercase text-luxury-mutedFg hover:text-luxury-accent transition-colors">←
             Kembali ke Daftar Produk</a>
     </div>
-    <button onclick="exportPDF()"
+    <button id="btn-export-pdf" onclick="exportPDF(this)"
         class="h-9 px-4 border border-[#1A1A1A] bg-[#1A1A1A] text-white text-[10px] tracking-[0.15em] uppercase flex items-center gap-2 hover:bg-transparent hover:text-[#1A1A1A] transition-all duration-300 no-print">
-        <i class="fas fa-file-pdf"></i> Export PDF
+        <i class="fas fa-file-pdf"></i> <span class="btn-text">Export PDF</span>
     </button>
 </div>
 
@@ -70,7 +70,7 @@ include '../../layouts/menu.php';
 <?php endif; ?>
 <?php if (isset($_SESSION['flash_error'])): ?>
     <div class="mb-8 p-4 rounded-lg border border-red-200 text-red-800 text-sm bg-red-50/80 relative z-10">
-        <?= $_SESSION['flash_error'] ?>
+        <?= render_flash_error() ?>
     </div>
     <?php unset($_SESSION['flash_error']); ?>
 <?php endif; ?>
@@ -202,14 +202,27 @@ include '../../layouts/menu.php';
                             <?= htmlspecialchars($bom['satuan']) ?>
                         </td>
 
-                        <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg bom-qty-display">
-                            <?= htmlspecialchars($bom['qty']) ?>
+                        <td class="py-4 px-4 font-mono text-sm text-luxury-mutedFg">
+                            <span class="bom-qty-display"><?= htmlspecialchars($bom['qty']) ?></span>
+                            <form id="bom-edit-form-<?= $bom['id_bahan_baku'] ?>" action="controllers/update.php" method="POST" class="bom-edit-form hidden">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="id_produk" value="<?= $produk['id_produk'] ?>">
+                                <input type="hidden" name="id_bahan_baku" value="<?= $bom['id_bahan_baku'] ?>">
+                                <input type="number" name="qty" min="0.01" step="0.01" required
+                                    value="<?= htmlspecialchars($bom['qty']) ?>"
+                                    class="bom-edit-input w-20 px-1 py-0.5 bg-transparent border-b border-luxury-accent text-sm font-mono focus:outline-none hidden">
+                            </form>
                         </td>
                         <td class="py-4 px-4 font-mono text-sm font-medium">Rp
                             <?= number_format($bom['subtotal'], 0, ',', '.') ?>
                         </td>
                         <td class="py-4 px-4 text-right space-x-3">
-                            <!-- Inline Edit Form -->
+                            <button type="button" onclick="toggleEdit(this, <?= $bom['id_bahan_baku'] ?>)"
+                                class="bom-edit-btn text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-accent transition-colors">Ubah</button>
+                            <button type="submit" form="bom-edit-form-<?= $bom['id_bahan_baku'] ?>"
+                                class="bom-save-btn hidden text-[10px] uppercase tracking-widest text-luxury-accent font-semibold hover:underline transition-colors">Simpan</button>
+                            <button type="button" onclick="cancelEdit(<?= $bom['id_bahan_baku'] ?>)"
+                                class="bom-cancel-btn hidden text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-fg transition-colors">Batal</button>
 
                             <form action="controllers/delete.php" method="POST" class="inline"
                                 onsubmit="return confirm('Hapus bahan ini dari resep?')">
@@ -225,13 +238,13 @@ include '../../layouts/menu.php';
 
                 <?php if (empty($bom_rows)): ?>
                     <tr>
-                        <td colspan="7" class="py-8 text-center text-luxury-mutedFg text-sm italic">Belum ada bahan baku.
+                        <td colspan="6" class="py-8 text-center text-luxury-mutedFg text-sm italic">Belum ada bahan baku.
                             Klik "Tambah Bahan" untuk menambahkan resep.</td>
                     </tr>
                 <?php else: ?>
                     <!-- Total Row = Harga Pokok -->
                     <tr class="bg-white/30">
-                        <td colspan="5"
+                        <td colspan="4"
                             class="py-4 px-4 text-right font-serif font-semibold text-sm uppercase tracking-wider">Total
                             Harga Pokok (BOM)</td>
                         <td class="py-4 px-4 font-serif font-semibold text-lg text-luxury-accent">Rp
@@ -241,7 +254,7 @@ include '../../layouts/menu.php';
                     </tr>
                     <?php if (abs($total_bom - $produk['harga_pokok']) > 0.01): ?>
                         <tr>
-                            <td colspan="7" class="py-3 px-4">
+                            <td colspan="6" class="py-3 px-4">
                                 <div
                                     class="flex items-center justify-between p-3 border-l-4 border-amber-500 bg-amber-50/50 text-amber-900 text-xs font-mono">
                                     <span><i class="fas fa-exclamation-triangle mr-2"></i>Total BOM (Rp
@@ -447,18 +460,38 @@ include '../../layouts/menu.php';
         return null;
     }
 
-    async function exportPDF() {
-        const logoData = await loadLogoDataUrl();
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+    async function exportPDF(btn = document.getElementById('btn-export-pdf')) {
+        let originalContent = '';
+        if (btn) {
+            btn.disabled = true;
+            originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        }
+        try {
+            const logoData = await loadLogoDataUrl();
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
 
-        drawHeader(pdf, logoData);
-        let currentY = 50;
-        currentY = drawProductInfo(pdf, currentY);
-        currentY = drawBomTable(pdf, currentY + 6, bomData);
+            drawHeader(pdf, logoData);
+            let currentY = 50;
+            currentY = drawProductInfo(pdf, currentY);
+            currentY = drawBomTable(pdf, currentY + 6, bomData);
 
-        // Preview PDF
-        window.open(pdf.output('bloburl'), '_blank');
+            const fileName = 'BOM_' + String(produkData.nama).replace(/[^a-zA-Z0-9_-]/g, '_') + '.pdf';
+            const blobUrl = pdf.output('bloburl');
+            const opened = window.open(blobUrl, '_blank');
+            if (!opened) {
+                pdf.save(fileName);
+            }
+        } catch (e) {
+            console.error('Export PDF error:', e);
+            alert('Gagal mengekspor PDF: ' + e.message);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        }
     }
 
     // Toggle add-BOM form
@@ -474,6 +507,7 @@ include '../../layouts/menu.php';
     function toggleEdit(btn, bahanId) {
         const row = document.getElementById('bom-row-' + bahanId);
         row.querySelector('.bom-qty-display').classList.add('hidden');
+        row.querySelector('.bom-edit-form').classList.remove('hidden');
         row.querySelector('.bom-edit-input').classList.remove('hidden');
         row.querySelector('.bom-edit-btn').classList.add('hidden');
         row.querySelector('.bom-save-btn').classList.remove('hidden');
@@ -484,6 +518,7 @@ include '../../layouts/menu.php';
     function cancelEdit(bahanId) {
         const row = document.getElementById('bom-row-' + bahanId);
         row.querySelector('.bom-qty-display').classList.remove('hidden');
+        row.querySelector('.bom-edit-form').classList.add('hidden');
         row.querySelector('.bom-edit-input').classList.add('hidden');
         row.querySelector('.bom-edit-btn').classList.remove('hidden');
         row.querySelector('.bom-save-btn').classList.add('hidden');
