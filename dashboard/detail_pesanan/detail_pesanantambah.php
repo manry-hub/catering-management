@@ -1,6 +1,10 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pesanan/pesananlihat.php');
 
 $id_pesanan = intval($_GET['id_pesanan'] ?? 0);
 if (!$id_pesanan) {
@@ -20,6 +24,7 @@ include '../../layouts/menu.php';
 
 <div class="relative z-10 glass-panel p-8 max-w-lg">
     <form action="controllers/create.php" method="POST" class="space-y-6">
+        <?= csrf_field() ?>
         <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
 
         <div>

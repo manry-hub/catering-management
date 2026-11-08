@@ -1,11 +1,17 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../../pesanan/pesananlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_pesanan = intval($_POST['id_pesanan'] ?? 0);
     $id_produk = intval($_POST['id_produk'] ?? 0);
     $qty = intval($_POST['qty'] ?? 0);
+
+    verify_csrf_token("../detail_pesanantambah.php?id_pesanan=$id_pesanan");
 
     if (!$id_pesanan || !$id_produk || $qty <= 0) {
         $_SESSION['flash_error'] = 'Data tidak lengkap atau qty tidak valid.';
@@ -26,10 +32,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $subtotal = $prod['harga_jual'] * $qty;
 
-        // 2. Insert ke detail_pesanan
-        $sql_ins = "INSERT INTO detail_pesanan (id_pesanan, id_produk, qty, subtotal) VALUES (?, ?, ?, ?)";
-        $stmt_ins = mysqli_prepare($conn, $sql_ins);
-        mysqli_stmt_bind_param($stmt_ins, 'iiid', $id_pesanan, $id_produk, $qty, $subtotal);
+        // 2. Cek apakah item produk sudah ada di detail_pesanan
+        $sql_check = "SELECT qty, subtotal FROM detail_pesanan WHERE id_pesanan = ? AND id_produk = ?";
+        $stmt_check = mysqli_prepare($conn, $sql_check);
+        mysqli_stmt_bind_param($stmt_check, 'ii', $id_pesanan, $id_produk);
+        mysqli_stmt_execute($stmt_check);
+        $existing = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_check));
+
+        if ($existing) {
+            $new_item_qty = $existing['qty'] + $qty;
+            $new_item_subtotal = $existing['subtotal'] + $subtotal;
+            $sql_ins = "UPDATE detail_pesanan SET qty = ?, subtotal = ? WHERE id_pesanan = ? AND id_produk = ?";
+            $stmt_ins = mysqli_prepare($conn, $sql_ins);
+            mysqli_stmt_bind_param($stmt_ins, 'idii', $new_item_qty, $new_item_subtotal, $id_pesanan, $id_produk);
+        } else {
+            $sql_ins = "INSERT INTO detail_pesanan (id_pesanan, id_produk, qty, subtotal) VALUES (?, ?, ?, ?)";
+            $stmt_ins = mysqli_prepare($conn, $sql_ins);
+            mysqli_stmt_bind_param($stmt_ins, 'iiid', $id_pesanan, $id_produk, $qty, $subtotal);
+        }
+
         if (!mysqli_stmt_execute($stmt_ins)) throw new Exception(handle_db_error($conn, 'Gagal menyimpan detail pesanan.'));
 
         // 3. Update total_harga pesanan

@@ -1,6 +1,10 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], 'pesananlihat.php');
 include '../../layouts/head.php';
 include '../../layouts/menu.php';
 
@@ -46,6 +50,7 @@ if ($jabatan === 'Pegawai Kantin') {
 
 <div class="relative z-10 glass-panel p-8 max-w-4xl">
     <form action="controllers/create.php" method="POST" class="space-y-8">
+        <?= csrf_field() ?>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
                 <label for="id_pelanggan"

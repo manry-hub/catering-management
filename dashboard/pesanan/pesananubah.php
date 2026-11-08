@@ -1,6 +1,10 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], 'pesananlihat.php');
 
 $id = intval($_GET['id'] ?? 0);
 if (!$id) {
@@ -49,6 +53,7 @@ include '../../layouts/menu.php';
     </div>
     
     <form action="controllers/update.php" method="POST" class="space-y-8">
+        <?= csrf_field() ?>
         <input type="hidden" name="id_pesanan" value="<?= htmlspecialchars($data['id_pesanan']) ?>">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">

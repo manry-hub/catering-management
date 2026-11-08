@@ -1,9 +1,15 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pesananlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_pesanan       = intval($_POST['id_pesanan'] ?? 0);
+    $id_pesanan = intval($_POST['id_pesanan'] ?? 0);
+    verify_csrf_token('../pesananubah.php?id=' . urlencode($id_pesanan));
+
     $status_pesanan   = trim($_POST['status_pesanan'] ?? '');
     $id_pelanggan     = intval($_POST['id_pelanggan'] ?? 0);
     $id_cabang_kantin = isset($_POST['id_cabang_kantin']) ? intval($_POST['id_cabang_kantin']) : null;
@@ -49,32 +55,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!mysqli_stmt_execute($stmt_cat)) {
                 throw new Exception(handle_db_error($conn, 'Gagal mengupdate detail catering.'));
             }
-        } else {
-            // Ensure catering fields are null if not catering, and id_cabang_kantin is properly updated
-            if (empty($id_cabang_kantin)) {
-                throw new Exception('Cabang Kantin wajib diisi untuk jenis pesanan Kantin.');
-            }
-        }
-
-        // Jika Catering, id_cabang_kantin biasanya NULL
-        if ($data_pesanan['jenis_pesanan'] === 'Catering') {
-            $id_cabang_kantin = null;
         }
 
         // Update pesanan table
-        $sql  = "UPDATE pesanan SET status_pesanan = ?, id_pelanggan = ?, id_cabang_kantin = ?, catatan = ? WHERE id_pesanan = ?";
+        $sql = "UPDATE pesanan SET 
+                    status_pesanan = ?, 
+                    id_pelanggan = ?, 
+                    id_cabang_kantin = ?, 
+                    catatan = ? 
+                WHERE id_pesanan = ?";
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, 'siisi', $status_pesanan, $id_pelanggan, $id_cabang_kantin, $catatan, $id_pesanan);
         
         if (!mysqli_stmt_execute($stmt)) {
-            throw new Exception(handle_db_error($conn, 'Gagal mengupdate tabel pesanan.'));
+            throw new Exception(handle_db_error($conn, 'Gagal mengupdate data pesanan.'));
         }
 
         mysqli_commit($conn);
-        $_SESSION['flash_success'] = 'Data pesanan berhasil diubah.';
+        $_SESSION['flash_success'] = 'Pesanan berhasil diperbarui.';
+
     } catch (Exception $e) {
         mysqli_rollback($conn);
-        $_SESSION['flash_error'] = $e->getMessage();
+        $_SESSION['flash_error'] = 'Terjadi kesalahan: ' . $e->getMessage();
     }
 
     header('Location: ../pesananlihat.php');

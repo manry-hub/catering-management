@@ -1,6 +1,10 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], 'pesananlihat.php');
 
 $id = intval($_GET['id'] ?? 0);
 if (!$id) {
@@ -40,6 +44,7 @@ include '../../layouts/menu.php';
     </p>
     
     <form action="controllers/delete.php" method="POST">
+        <?= csrf_field() ?>
         <input type="hidden" name="id_pesanan" value="<?= htmlspecialchars($data['id_pesanan']) ?>">
         
         <button type="submit" class="h-12 px-8 bg-red-900 text-luxury-white text-xs tracking-[0.2em] uppercase font-medium relative overflow-hidden group shadow-btn hover:shadow-btn-hover transition-all duration-500 rounded-lg">

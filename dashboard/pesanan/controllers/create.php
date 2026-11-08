@@ -1,16 +1,21 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pesananlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf_token('../pesanantambah.php');
+
     $errors = [];
     $id_pelanggan = intval($_POST['id_pelanggan'] ?? 0);
     $id_cabang_kantin = null;
     $id_catering = null;
     $id_pegawai = intval($_SESSION['id_pegawai'] ?? 0);
     $jenis_pesanan = trim($_POST['jenis_pesanan'] ?? '');
-    $produk_ids = $_POST['id_produk'] ?? [];
-    $qtys = $_POST['qty'] ?? [];
+    $catatan = trim($_POST['catatan'] ?? '');
 
     // Validasi umum
     if (empty($id_pelanggan))
@@ -25,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validasi catering fields
     $tanggal_acara = trim($_POST['tanggal_acara'] ?? '');
     $lokasi_acara = trim($_POST['lokasi_acara'] ?? '');
-    $catatan = trim($_POST['catatan'] ?? '');
 
     if ($jenis_pesanan === 'Catering') {
         if (empty($tanggal_acara))

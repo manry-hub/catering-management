@@ -1,8 +1,14 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pesananlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf_token('../pesananlihat.php');
+
     $id_pesanan = intval($_POST['id_pesanan'] ?? 0);
 
     if (empty($id_pesanan)) {
@@ -14,6 +20,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ========== BEGIN TRANSACTION ==========
     mysqli_begin_transaction($conn);
     try {
+        // Cek info pesanan (termasuk id_catering jika ada)
+        $sql_info = "SELECT id_catering FROM pesanan WHERE id_pesanan = ?";
+        $stmt_info = mysqli_prepare($conn, $sql_info);
+        mysqli_stmt_bind_param($stmt_info, 'i', $id_pesanan);
+        mysqli_stmt_execute($stmt_info);
+        $res_info = mysqli_stmt_get_result($stmt_info);
+        $order_info = mysqli_fetch_assoc($res_info);
+        $linked_catering_id = $order_info['id_catering'] ?? null;
+
         // 1. Ambil semua detail_pesanan
         $sql_detail = "SELECT dp.id_produk, dp.qty FROM detail_pesanan dp WHERE dp.id_pesanan = ?";
         $stmt_detail = mysqli_prepare($conn, $sql_detail);
@@ -82,6 +97,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_stmt_bind_param($stmt_del, 'i', $id_pesanan);
         if (!mysqli_stmt_execute($stmt_del)) {
             throw new Exception(handle_db_error($conn, 'Gagal menghapus pesanan.'));
+        }
+
+        // 5. Bersihkan data catering terkait untuk mencegah orphaned records
+        if (!empty($linked_catering_id)) {
+            $sql_del_cat = "DELETE FROM catering WHERE id_catering = ?";
+            $stmt_del_cat = mysqli_prepare($conn, $sql_del_cat);
+            mysqli_stmt_bind_param($stmt_del_cat, 'i', $linked_catering_id);
+            mysqli_stmt_execute($stmt_del_cat);
         }
 
         // ========== COMMIT ==========

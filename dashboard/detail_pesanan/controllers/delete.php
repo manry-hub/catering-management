@@ -1,12 +1,19 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../../pesanan/pesananlihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_detail_pesanan = intval($_POST['id_detail_pesanan'] ?? 0);
     $id_pesanan = intval($_POST['id_pesanan'] ?? 0);
+    $id_produk = intval($_POST['id_produk'] ?? 0);
+    $id_detail_pesanan = intval($_POST['id_detail_pesanan'] ?? 0);
 
-    if (!$id_detail_pesanan || !$id_pesanan) {
+    verify_csrf_token("../detail_pesananlihat.php?id=$id_pesanan");
+
+    if (!$id_pesanan || (!$id_produk && !$id_detail_pesanan)) {
         $_SESSION['flash_error'] = 'Data tidak valid.';
         header("Location: ../detail_pesananlihat.php?id=$id_pesanan");
         exit;
@@ -15,9 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     mysqli_begin_transaction($conn);
     try {
         // 1. Ambil info detail_pesanan
-        $sql_det = "SELECT id_produk, qty, subtotal FROM detail_pesanan WHERE id_detail_pesanan = ?";
-        $stmt_det = mysqli_prepare($conn, $sql_det);
-        mysqli_stmt_bind_param($stmt_det, 'i', $id_detail_pesanan);
+        if ($id_detail_pesanan > 0) {
+            $sql_det = "SELECT id_pesanan, id_produk, qty, subtotal FROM detail_pesanan WHERE id_detail_pesanan = ?";
+            $stmt_det = mysqli_prepare($conn, $sql_det);
+            mysqli_stmt_bind_param($stmt_det, 'i', $id_detail_pesanan);
+        } else {
+            $sql_det = "SELECT id_pesanan, id_produk, qty, subtotal FROM detail_pesanan WHERE id_pesanan = ? AND id_produk = ?";
+            $stmt_det = mysqli_prepare($conn, $sql_det);
+            mysqli_stmt_bind_param($stmt_det, 'ii', $id_pesanan, $id_produk);
+        }
         mysqli_stmt_execute($stmt_det);
         $det = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_det));
 
@@ -59,9 +72,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // 3. Delete detail_pesanan
-        $sql_del = "DELETE FROM detail_pesanan WHERE id_detail_pesanan = ?";
-        $stmt_del = mysqli_prepare($conn, $sql_del);
-        mysqli_stmt_bind_param($stmt_del, 'i', $id_detail_pesanan);
+        if ($id_detail_pesanan > 0) {
+            $sql_del = "DELETE FROM detail_pesanan WHERE id_detail_pesanan = ?";
+            $stmt_del = mysqli_prepare($conn, $sql_del);
+            mysqli_stmt_bind_param($stmt_del, 'i', $id_detail_pesanan);
+        } else {
+            $sql_del = "DELETE FROM detail_pesanan WHERE id_pesanan = ? AND id_produk = ?";
+            $stmt_del = mysqli_prepare($conn, $sql_del);
+            mysqli_stmt_bind_param($stmt_del, 'ii', $id_pesanan, $id_produk);
+        }
         if (!mysqli_stmt_execute($stmt_del)) throw new Exception(handle_db_error($conn, 'Gagal menghapus item dari pesanan.'));
 
         // 4. Update total_harga pesanan
@@ -71,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!mysqli_stmt_execute($stmt_upd)) throw new Exception(handle_db_error($conn, 'Gagal memperbarui total harga pesanan.'));
 
         mysqli_commit($conn);
-        $_SESSION['flash_success'] = 'Item produk berhasil dihapus dari pesanan.';
+        $_SESSION['flash_success'] = 'Item produk berhasil dihapus dari pesanan dan stok dipulihkan.';
     } catch (Exception $e) {
         mysqli_rollback($conn);
         $_SESSION['flash_error'] = $e->getMessage();

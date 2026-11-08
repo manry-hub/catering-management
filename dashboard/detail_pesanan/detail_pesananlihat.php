@@ -1,6 +1,9 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+
+require_role(['Owner', 'Admin', 'Pegawai Kantin', 'Pegawai Catering'], '../pesanan/pesananlihat.php');
 
 $id = intval($_GET['id'] ?? 0);
 if (!$id) {
@@ -177,9 +180,15 @@ include '../../layouts/menu.php';
                             <?= number_format($item['subtotal'], 0, ',', '.') ?>
                         </td>
                         <td class="py-4 px-4 text-right space-x-2">
-                            <a href="detail_pesananubah.php?id=<?= $item['id_detail_pesanan'] ?>"
+                            <?php
+                            $item_url_params = 'id_pesanan=' . urlencode($id) . '&id_produk=' . urlencode($item['id_produk']);
+                            if (!empty($item['id_detail_pesanan'])) {
+                                $item_url_params .= '&id=' . urlencode($item['id_detail_pesanan']);
+                            }
+                            ?>
+                            <a href="detail_pesananubah.php?<?= $item_url_params ?>"
                                 class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-accent transition-colors">Ubah</a>
-                            <a href="detail_pesananhapus.php?id=<?= $item['id_detail_pesanan'] ?>"
+                            <a href="detail_pesananhapus.php?<?= $item_url_params ?>"
                                 class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-red-700 transition-colors">Hapus</a>
                         </td>
                     </tr>
