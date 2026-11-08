@@ -1,6 +1,11 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+
+// Otorisasi: Hanya Owner dan Admin yang dapat melihat manajemen pegawai
+require_role(['Owner', 'Admin']);
+
 include '../../layouts/head.php';
 include '../../layouts/menu.php';
 
@@ -48,16 +53,13 @@ $result = mysqli_query($conn, $sql);
                     <td class="py-4 px-4 font-medium"><?= htmlspecialchars($row['nama_pegawai']) ?></td>
                     <td class="py-4 px-4 text-luxury-mutedFg"><?= htmlspecialchars($row['jabatan']) ?></td>
                     <td class="py-4 px-4 text-right space-x-4">
-                        <a href="pegawaiubah.php?id=<?= $row['id_pegawai'] ?>" class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-luxury-accent transition-colors">Ubah</a>
-                        <a href="pegawaihapus.php?id=<?= $row['id_pegawai'] ?>" class="text-[10px] uppercase tracking-widest text-luxury-mutedFg hover:text-red-700 transition-colors">Hapus</a>
+                        <a href="pegawaiubah.php?id=<?= $row['id_pegawai'] ?>" class="text-xs uppercase tracking-widest hover:text-luxury-accent transition-colors">Ubah</a>
+                        <?php if ($row['id_pegawai'] != $_SESSION['id_pegawai']): ?>
+                            <a href="pegawaihapus.php?id=<?= $row['id_pegawai'] ?>" class="text-xs uppercase tracking-widest text-red-700 hover:text-red-900 transition-colors">Hapus</a>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endwhile; ?>
-            <?php if (mysqli_num_rows($result) === 0): ?>
-                <tr>
-                    <td colspan="5" class="py-8 text-center text-luxury-mutedFg text-sm">Belum ada data pegawai.</td>
-                </tr>
-            <?php endif; ?>
         </tbody>
     </table>
 </div>

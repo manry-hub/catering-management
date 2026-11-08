@@ -1,14 +1,21 @@
 <?php
 include '../../../layouts/config.php';
 include '../../../layouts/session.php';
+include '../../../layouts/csrf.php';
+include '../../../layouts/guard.php';
+
+// Otorisasi: Hanya Owner dan Admin yang dapat menghapus pegawai
+require_role(['Owner', 'Admin'], '../pegawailihat.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_pegawai = $_POST['id_pegawai'] ?? 0;
+    verify_csrf_token('../pegawailihat.php');
+
+    $id_pegawai = intval($_POST['id_pegawai'] ?? 0);
 
     if (!empty($id_pegawai)) {
         // Prevent deleting the currently logged in user to avoid session issues
         if ($id_pegawai == $_SESSION['id_pegawai']) {
-            $_SESSION['flash_error'] = 'Tidak dapat menghapus akun yang sedang login.';
+            $_SESSION['flash_error'] = 'Tidak dapat menghapus akun yang sedang aktif digunakan.';
             header('Location: ../pegawailihat.php');
             exit;
         }

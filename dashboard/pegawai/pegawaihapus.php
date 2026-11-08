@@ -1,8 +1,13 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
 
-$id = $_GET['id'] ?? 0;
+// Otorisasi: Hanya Owner dan Admin yang dapat menghapus pegawai
+require_role(['Owner', 'Admin'], 'pegawailihat.php');
+
+$id = intval($_GET['id'] ?? 0);
 if (!$id) {
     header('Location: pegawailihat.php');
     exit;
@@ -37,9 +42,10 @@ include '../../layouts/menu.php';
 <?php endif; ?>
 
 <div class="border-t border-luxury-fg/20 pt-8 relative z-10 max-w-2xl bg-luxury-bg/50 backdrop-blur-sm p-8">
-    <p class="text-sm mb-8 text-luxury-mutedFg">Apakah Anda yakin ingin menghapus pegawai <strong><?= htmlspecialchars($data['nama_pegawai']) ?></strong> (<?= htmlspecialchars($data['username']) ?>)? Tindakan ini tidak dapat dibatalkan.</p>
+    <p class="text-sm mb-8 text-luxury-mutedFg">Apakah Anda yakin ingin menghapus pegawai <strong><?= htmlspecialchars($data['nama_pegawai']) ?></strong> (Jabatan: <?= htmlspecialchars($data['jabatan']) ?>)? Tindakan ini tidak dapat dibatalkan.</p>
     
     <form action="controllers/delete.php" method="POST">
+        <?= csrf_field() ?>
         <input type="hidden" name="id_pegawai" value="<?= htmlspecialchars($data['id_pegawai']) ?>">
         
         <button type="submit" class="h-12 px-8 bg-red-900 text-luxury-white text-xs tracking-[0.2em] uppercase font-medium relative overflow-hidden group shadow-btn hover:shadow-btn-hover transition-all duration-500">

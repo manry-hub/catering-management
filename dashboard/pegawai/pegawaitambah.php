@@ -1,6 +1,12 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
+
+// Otorisasi: Hanya Owner dan Admin yang dapat menambah pegawai
+require_role(['Owner', 'Admin'], 'pegawailihat.php');
+
 include '../../layouts/head.php';
 include '../../layouts/menu.php';
 ?>
@@ -20,6 +26,7 @@ include '../../layouts/menu.php';
 
 <div class="border-t border-luxury-fg/20 pt-8 relative z-10 max-w-2xl bg-luxury-bg/50 backdrop-blur-sm p-8">
     <form action="controllers/create.php" method="POST" class="space-y-8">
+        <?= csrf_field() ?>
         <div class="relative group">
             <input type="text" name="nama_pegawai" id="nama_pegawai" required
                 class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent"
@@ -30,11 +37,11 @@ include '../../layouts/menu.php';
         </div>
 
         <div class="relative group">
-            <input type="password" name="password" id="password" required
+            <input type="password" name="password" id="password" required minlength="6"
                 class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent"
                 placeholder="Password">
             <label for="password"
-                class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Password</label>
+                class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Password (Min. 6 Karakter)</label>
         </div>
 
         <div>
@@ -45,14 +52,15 @@ include '../../layouts/menu.php';
                 <option value="Pegawai Kantin">Pegawai Kantin</option>
                 <option value="Pegawai Catering">Pegawai Catering</option>
                 <option value="Pegawai Dapur">Pegawai Dapur</option>
+                <option value="Admin">Admin</option>
                 <option value="Owner">Owner</option>
             </select>
         </div>
 
-        <div class="pt-4">
+        <div class="pt-8">
             <button type="submit"
-                class="h-12 px-8 border border-[#1A1A1A] bg-[#1A1A1A] text-white text-[10px] tracking-[0.2em] uppercase relative overflow-hidden group hover:bg-transparent hover:text-[#1A1A1A] transition-all duration-500">
-                <span class="relative z-10 transition-colors duration-500">Simpan</span>
+                class="h-12 px-8 border border-[#1A1A1A] bg-[#1A1A1A] text-white text-[10px] tracking-[0.2em] uppercase relative overflow-hidden group hover:bg-transparent hover:text-[#1A1A1A] transition-all duration-500 w-full md:w-auto">
+                <span class="relative z-10 transition-colors duration-500">Simpan Data</span>
             </button>
         </div>
     </form>

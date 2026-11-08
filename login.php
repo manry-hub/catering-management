@@ -6,11 +6,15 @@ if (isset($_SESSION['id_pegawai'])) {
 }
 
 include 'layouts/config.php';
+include 'layouts/csrf.php';
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama_pegawai = mysqli_real_escape_string($conn, $_POST['nama_pegawai']);
-    $password = $_POST['password'];
+    verify_csrf_token('/gorjes/login.php');
+
+    $nama_pegawai = trim($_POST['nama_pegawai'] ?? '');
+    $password     = $_POST['password'] ?? '';
 
     $sql    = "SELECT * FROM pegawai WHERE nama_pegawai = ? LIMIT 1";
     $stmt   = mysqli_prepare($conn, $sql);
@@ -19,11 +23,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = mysqli_stmt_get_result($stmt);
     $user   = mysqli_fetch_assoc($result);
 
-    if ($user && $password === $user['password']) {
+    $is_authenticated = false;
+
+    if ($user) {
+        // Cek dengan password_verify (Bcrypt)
+        if (password_verify($password, $user['password'])) {
+            $is_authenticated = true;
+            // Rehash jika konfigurasi algoritma Bcrypt diperbarui
+            if (password_needs_rehash($user['password'], PASSWORD_BCRYPT)) {
+                $new_hash = password_hash($password, PASSWORD_BCRYPT);
+                $upd = mysqli_prepare($conn, "UPDATE pegawai SET password = ? WHERE id_pegawai = ?");
+                mysqli_stmt_bind_param($upd, 'si', $new_hash, $user['id_pegawai']);
+                mysqli_stmt_execute($upd);
+            }
+        } elseif ($password === $user['password']) {
+            // Auto-upgrade transparan dari plaintext lama ke hash Bcrypt
+            $is_authenticated = true;
+            $new_hash = password_hash($password, PASSWORD_BCRYPT);
+            $upd = mysqli_prepare($conn, "UPDATE pegawai SET password = ? WHERE id_pegawai = ?");
+            mysqli_stmt_bind_param($upd, 'si', $new_hash, $user['id_pegawai']);
+            mysqli_stmt_execute($upd);
+        }
+    }
+
+    if ($is_authenticated) {
+        // Regenerasi session ID untuk mencegah serangan session fixation
+        session_regenerate_id(true);
         $_SESSION['id_pegawai']   = $user['id_pegawai'];
         $_SESSION['nama_pegawai'] = $user['nama_pegawai'];
         $_SESSION['jabatan']      = $user['jabatan'];
-        header('Location: /gorjes/dashboard/index.php');
+
+        $destination = match ($user['jabatan'] ?? '') {
+            'Pegawai Kantin', 'Pegawai Catering' => '/gorjes/dashboard/pesanan/pesananlihat.php',
+            'Pegawai Dapur' => '/gorjes/dashboard/bahan_baku/bahan_bakulihat.php',
+            default => '/gorjes/dashboard/index.php',
+        };
+
+        header('Location: ' . $destination);
         exit;
     } else {
         $error = 'Nama atau password salah.';
@@ -49,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="" class="space-y-6">
+            <?= csrf_field() ?>
             <div class="relative group">
                 <input type="text" name="nama_pegawai" id="nama_pegawai" required 
                     class="w-full glass-input text-sm peer placeholder-transparent" placeholder="Nama Pegawai">

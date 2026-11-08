@@ -1,8 +1,13 @@
 <?php
 include '../../layouts/session.php';
 include '../../layouts/config.php';
+include '../../layouts/guard.php';
+include '../../layouts/csrf.php';
 
-$id = $_GET['id'] ?? 0;
+// Otorisasi: Hanya Owner dan Admin yang dapat mengedit pegawai
+require_role(['Owner', 'Admin'], 'pegawailihat.php');
+
+$id = intval($_GET['id'] ?? 0);
 if (!$id) {
     header('Location: pegawailihat.php');
     exit;
@@ -40,6 +45,7 @@ include '../../layouts/menu.php';
 
 <div class="border-t border-luxury-fg/20 pt-8 relative z-10 max-w-2xl bg-luxury-bg/50 backdrop-blur-sm p-8">
     <form action="controllers/update.php" method="POST" class="space-y-8">
+        <?= csrf_field() ?>
         <input type="hidden" name="id_pegawai" value="<?= htmlspecialchars($data['id_pegawai']) ?>">
 
         <div class="relative group">
@@ -48,35 +54,34 @@ include '../../layouts/menu.php';
                 class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent"
                 placeholder="Nama Pegawai">
             <label for="nama_pegawai"
-                class="absolute left-0 -top-4 text-xs text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent">Nama
+                class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Nama
                 Pegawai</label>
         </div>
 
         <div class="relative group">
-            <input type="password" name="password" id="password"
+            <input type="password" name="password" id="password" minlength="6"
                 class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 peer placeholder-transparent"
-                placeholder="Password">
+                placeholder="Password Baru">
             <label for="password"
-                class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Password
-                Baru (Kosongkan jika tidak diubah)</label>
+                class="absolute left-0 top-3 text-luxury-mutedFg font-serif italic transition-all duration-500 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-luxury-accent peer-valid:-top-4 peer-valid:text-xs peer-valid:text-luxury-mutedFg">Password Baru (Kosongkan jika tidak diubah)</label>
         </div>
 
         <div>
             <label for="jabatan" class="block text-xs text-luxury-mutedFg font-serif italic mb-2">Jabatan</label>
-            <?php $jabatan_options = ['Pegawai Kantin', 'Pegawai Catering', 'Pegawai Dapur', 'Owner']; ?>
             <select name="jabatan" id="jabatan" required
                 class="w-full h-12 bg-transparent border-b border-luxury-fg/50 text-sm px-0 py-2 focus:outline-none focus:border-luxury-accent transition-colors duration-500 cursor-pointer">
-                <option value="">-- Pilih Jabatan --</option>
-                <?php foreach ($jabatan_options as $jbt): ?>
-                    <option value="<?= $jbt ?>" <?= ($data['jabatan'] === $jbt) ? 'selected' : '' ?>><?= $jbt ?></option>
-                <?php endforeach; ?>
+                <option value="Pegawai Kantin" <?= $data['jabatan'] == 'Pegawai Kantin' ? 'selected' : '' ?>>Pegawai Kantin</option>
+                <option value="Pegawai Catering" <?= $data['jabatan'] == 'Pegawai Catering' ? 'selected' : '' ?>>Pegawai Catering</option>
+                <option value="Pegawai Dapur" <?= $data['jabatan'] == 'Pegawai Dapur' ? 'selected' : '' ?>>Pegawai Dapur</option>
+                <option value="Admin" <?= $data['jabatan'] == 'Admin' ? 'selected' : '' ?>>Admin</option>
+                <option value="Owner" <?= $data['jabatan'] == 'Owner' ? 'selected' : '' ?>>Owner</option>
             </select>
         </div>
 
-        <div class="pt-4">
+        <div class="pt-8">
             <button type="submit"
-                class="h-12 px-8 border border-[#1A1A1A] bg-[#1A1A1A] text-white text-[10px] tracking-[0.2em] uppercase relative overflow-hidden group hover:bg-transparent hover:text-[#1A1A1A] transition-all duration-500">
-                <span class="relative z-10 transition-colors duration-500">Simpan Perubahan</span>
+                class="h-12 px-8 border border-[#1A1A1A] bg-[#1A1A1A] text-white text-[10px] tracking-[0.2em] uppercase relative overflow-hidden group hover:bg-transparent hover:text-[#1A1A1A] transition-all duration-500 w-full md:w-auto">
+                <span class="relative z-10 transition-colors duration-500">Perbarui Data</span>
             </button>
         </div>
     </form>
